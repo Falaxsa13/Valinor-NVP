@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import { useEffect } from "react";
 
 export default function Editor({
   onContentChange,
@@ -14,9 +15,22 @@ export default function Editor({
     ],
     content: "",
     onUpdate: ({ editor }) => {
-      onContentChange(editor.getHTML()); // Send content to parent
+      if (editor) {
+        onContentChange(editor.getHTML()); // Ensure editor exists before calling
+      }
     },
   });
+
+  // Ensure `onContentChange` sends an empty string initially to avoid undefined errors
+  useEffect(() => {
+    if (editor) {
+      onContentChange(editor.getHTML());
+    }
+  }, [editor, onContentChange]);
+
+  if (!editor) {
+    return <div className="border p-4 text-gray-500">Loading editor...</div>;
+  }
 
   return (
     <div className="border p-4">
