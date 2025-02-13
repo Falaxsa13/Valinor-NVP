@@ -7,7 +7,8 @@ import TextAlign from "@tiptap/extension-text-align";
 import { Color } from "@tiptap/extension-color";
 import { Extension } from "@tiptap/core";
 import TextStyle from "@tiptap/extension-text-style";
-import { MenuBar, DocumentStats, VersionHistory } from "./DocumentFeatures";
+import { MenuBar, DocumentStats } from "./DocumentFeatures";
+import LaTeXPreview from "./LaTeXPreview";
 
 import {
   Bold,
@@ -159,6 +160,7 @@ const Dropdown = ({
 const EnhancedEditor = ({ onContentChange }: EditorProps) => {
   const [fontSize, setFontSize] = useState("11");
   const [fontFamily, setFontFamily] = useState("Arial");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -218,129 +220,144 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      <MenuBar editor={editor} />
-      {/* Main Toolbar */}
-      <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
-        <div className="flex items-center justify-between p-2 border-b">
-          <div className="flex items-center space-x-4">
-            <div className="w-6 h-6 bg-blue-600 rounded" />
-            <div className="flex flex-col">
-              <input
-                type="text"
-                placeholder="Untitled document"
-                className="text-lg font-medium bg-transparent border-none outline-none hover:bg-gray-100 px-2 rounded"
-              />
+    <div className="flex h-screen w-full max-w-5xl mx-auto ">
+      <div
+        className={`flex-1 transition-all duration-300 ease-in-out ${
+          isPreviewOpen ? "mr-[50%]" : "mr-12"
+        }`}
+      >
+        <MenuBar editor={editor} />
+        {/* Main Toolbar */}
+        <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+          <div className="flex items-center justify-between p-2 border-b">
+            <div className="flex items-center space-x-4">
+              <div className="w-6 h-6 bg-blue-600 rounded" />
+              <div className="flex flex-col">
+                <input
+                  type="text"
+                  placeholder="Untitled document"
+                  className="text-lg font-medium bg-transparent border-none outline-none hover:bg-gray-100 px-2 rounded"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button className="px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded">
+                Share
+              </button>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <button className="px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded">
-              Share
-            </button>
+
+          {/* Formatting Toolbar */}
+          <div className="flex flex-wrap items-center p-1 gap-1 border-b">
+            <div className="flex items-center border-r pr-2 mr-2">
+              <Dropdown
+                value={fontFamily}
+                options={FONT_FAMILIES}
+                onChange={updateFontFamily}
+                className="min-w-[120px]"
+              />
+              <Dropdown
+                value={fontSize}
+                options={FONT_SIZES}
+                onChange={updateFontSize}
+                className="min-w-[60px]"
+              />
+            </div>
+
+            <MenuButton onClick={() => editor.chain().focus().undo().run()}>
+              <Undo className="w-4 h-4" />
+            </MenuButton>
+            <MenuButton onClick={() => editor.chain().focus().redo().run()}>
+              <Redo className="w-4 h-4" />
+            </MenuButton>
+
+            <div className="h-4 border-r mx-2" />
+
+            <MenuButton
+              isActive={editor.isActive("bold")}
+              onClick={() => editor.chain().focus().toggleBold().run()}
+            >
+              <Bold className="w-4 h-4" />
+            </MenuButton>
+            <MenuButton
+              isActive={editor.isActive("italic")}
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+            >
+              <Italic className="w-4 h-4" />
+            </MenuButton>
+            <MenuButton
+              isActive={editor.isActive("underline")}
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+            >
+              <UnderlineIcon className="w-4 h-4" />
+            </MenuButton>
+            <MenuButton
+              isActive={editor.isActive("strike")}
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+            >
+              <Strikethrough className="w-4 h-4" />
+            </MenuButton>
+
+            <div className="h-4 border-r mx-2" />
+
+            <MenuButton onClick={() => {}}>
+              <Link className="w-4 h-4" />
+            </MenuButton>
+            <MenuButton onClick={() => {}}>
+              <Image className="w-4 h-4" />
+            </MenuButton>
+
+            <div className="h-4 border-r mx-2" />
+
+            <MenuButton
+              isActive={editor.isActive("bulletList")}
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+            >
+              <List className="w-4 h-4" />
+            </MenuButton>
+            <MenuButton
+              isActive={editor.isActive("orderedList")}
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            >
+              <ListOrdered className="w-4 h-4" />
+            </MenuButton>
+
+            <div className="h-4 border-r mx-2" />
+
+            <MenuButton
+              isActive={editor.isActive({ textAlign: "left" })}
+              onClick={() => editor.chain().focus().setTextAlign("left").run()}
+            >
+              <AlignLeft className="w-4 h-4" />
+            </MenuButton>
+            <MenuButton
+              isActive={editor.isActive({ textAlign: "center" })}
+              onClick={() =>
+                editor.chain().focus().setTextAlign("center").run()
+              }
+            >
+              <AlignCenter className="w-4 h-4" />
+            </MenuButton>
+            <MenuButton
+              isActive={editor.isActive({ textAlign: "right" })}
+              onClick={() => editor.chain().focus().setTextAlign("right").run()}
+            >
+              <AlignRight className="w-4 h-4" />
+            </MenuButton>
           </div>
         </div>
-
-        {/* Formatting Toolbar */}
-        <div className="flex flex-wrap items-center p-1 gap-1 border-b">
-          <div className="flex items-center border-r pr-2 mr-2">
-            <Dropdown
-              value={fontFamily}
-              options={FONT_FAMILIES}
-              onChange={updateFontFamily}
-              className="min-w-[120px]"
-            />
-            <Dropdown
-              value={fontSize}
-              options={FONT_SIZES}
-              onChange={updateFontSize}
-              className="min-w-[60px]"
-            />
-          </div>
-
-          <MenuButton onClick={() => editor.chain().focus().undo().run()}>
-            <Undo className="w-4 h-4" />
-          </MenuButton>
-          <MenuButton onClick={() => editor.chain().focus().redo().run()}>
-            <Redo className="w-4 h-4" />
-          </MenuButton>
-
-          <div className="h-4 border-r mx-2" />
-
-          <MenuButton
-            isActive={editor.isActive("bold")}
-            onClick={() => editor.chain().focus().toggleBold().run()}
-          >
-            <Bold className="w-4 h-4" />
-          </MenuButton>
-          <MenuButton
-            isActive={editor.isActive("italic")}
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-          >
-            <Italic className="w-4 h-4" />
-          </MenuButton>
-          <MenuButton
-            isActive={editor.isActive("underline")}
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-          >
-            <UnderlineIcon className="w-4 h-4" />
-          </MenuButton>
-          <MenuButton
-            isActive={editor.isActive("strike")}
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-          >
-            <Strikethrough className="w-4 h-4" />
-          </MenuButton>
-
-          <div className="h-4 border-r mx-2" />
-
-          <MenuButton onClick={() => {}}>
-            <Link className="w-4 h-4" />
-          </MenuButton>
-          <MenuButton onClick={() => {}}>
-            <Image className="w-4 h-4" />
-          </MenuButton>
-
-          <div className="h-4 border-r mx-2" />
-
-          <MenuButton
-            isActive={editor.isActive("bulletList")}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            <List className="w-4 h-4" />
-          </MenuButton>
-          <MenuButton
-            isActive={editor.isActive("orderedList")}
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          >
-            <ListOrdered className="w-4 h-4" />
-          </MenuButton>
-
-          <div className="h-4 border-r mx-2" />
-
-          <MenuButton
-            isActive={editor.isActive({ textAlign: "left" })}
-            onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          >
-            <AlignLeft className="w-4 h-4" />
-          </MenuButton>
-          <MenuButton
-            isActive={editor.isActive({ textAlign: "center" })}
-            onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          >
-            <AlignCenter className="w-4 h-4" />
-          </MenuButton>
-          <MenuButton
-            isActive={editor.isActive({ textAlign: "right" })}
-            onClick={() => editor.chain().focus().setTextAlign("right").run()}
-          >
-            <AlignRight className="w-4 h-4" />
-          </MenuButton>
-        </div>
+        {/* Editor Content */}
+        <EditorContent
+          editor={editor}
+          className="pr-12" // Add padding for collapsed state
+        />
+        <DocumentStats editor={editor} />
+        <LaTeXPreview
+          content={editor?.getHTML() || ""}
+          isOpen={isPreviewOpen}
+          onToggle={setIsPreviewOpen}
+        />{" "}
       </div>
-
-      {/* Editor Content */}
-      <EditorContent editor={editor} />
-      <DocumentStats editor={editor} />
     </div>
   );
 };

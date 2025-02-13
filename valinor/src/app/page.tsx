@@ -9,9 +9,8 @@ export default function Home() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold">AI-Powered LaTeX Editor</h1>
+      <h1 className="text-2xl font-boldm mb-3">AI-Powered LaTeX Editor</h1>
       <Editor onContentChange={setContent} />
-      <LaTeXPreview content={content} />
     </div>
   );
 }
