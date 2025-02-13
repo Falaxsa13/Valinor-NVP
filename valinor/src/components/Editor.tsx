@@ -4,9 +4,9 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
-import TextStyle from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { Extension } from "@tiptap/core";
+import TextStyle from "@tiptap/extension-text-style";
 
 import {
   Bold,
@@ -50,16 +50,21 @@ const FONT_SIZES = [
 
 const FONT_FAMILIES = [
   "Arial",
-  "Times New Roman",
+  "Arial Black",
+  "Comic Sans MS",
   "Courier New",
   "Georgia",
-  "Verdana",
-  "Helvetica",
+  "Impact",
+  "Lucida Console",
 ];
 
-// Custom FontSize extension using TextStyle
-const FontSize = Extension.create({
-  name: "fontSize",
+/**
+ * CustomTextStyle extension extends the default TextStyle
+ * and adds support for fontSize and fontFamily.
+ *
+ * It renders an inline style that merges both properties.
+ */
+const CustomTextStyle = TextStyle.extend({
   addGlobalAttributes() {
     return [
       {
@@ -67,21 +72,24 @@ const FontSize = Extension.create({
         attributes: {
           fontSize: {
             default: null,
-            parseHTML: (element) => {
-              return element.style.fontSize
-                ? element.style.fontSize.replace("px", "")
-                : null;
-            },
-            renderHTML: (attributes) => {
-              if (!attributes.fontSize) {
-                return {};
-              }
-              return { style: `font-size: ${attributes.fontSize}px` };
-            },
+          },
+          fontFamily: {
+            default: null,
           },
         },
       },
     ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const styles = [];
+    if (HTMLAttributes.fontSize) {
+      styles.push(`font-size: ${HTMLAttributes.fontSize}px`);
+    }
+    if (HTMLAttributes.fontFamily) {
+      styles.push(`font-family: ${HTMLAttributes.fontFamily}`);
+    }
+    return ["span", { style: styles.join("; ") }];
   },
 });
 
@@ -154,18 +162,11 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        paragraph: {
-          HTMLAttributes: {
-            class: "mb-3",
-          },
-        },
+        paragraph: { HTMLAttributes: { class: "mb-3" } },
       }),
       Underline,
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-      }),
-      TextStyle, // Needed for inline styling
-      FontSize, // Our custom FontSize extension
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      CustomTextStyle, // Our custom extension handling both fontSize and fontFamily
       Color,
       Placeholder.configure({
         placeholder: "Type @ to insert, or start writing...",
@@ -188,25 +189,31 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
   if (!editor) {
     return (
       <div className="w-full max-w-5xl mx-auto animate-pulse">
-        <div className="h-12 bg-gray-100 rounded-t mb-1"></div>
-        <div className="h-96 bg-gray-50 rounded-b"></div>
+        <div className="h-12 bg-gray-100 rounded-t mb-1" />
+        <div className="h-96 bg-gray-50 rounded-b" />
       </div>
     );
   }
 
   const updateFontSize = (size: string) => {
     setFontSize(size);
-    // Use updateAttributes to update an existing mark or store for future text
+    // Merge with current attributes so we don't lose fontFamily (if any)
+    const current = editor.getAttributes("textStyle");
     editor
       .chain()
       .focus()
-      .updateAttributes("textStyle", { fontSize: size })
+      .setMark("textStyle", { ...current, fontSize: size })
       .run();
   };
 
   const updateFontFamily = (font: string) => {
     setFontFamily(font);
-    editor.chain().focus().setMark("textStyle", { fontFamily: font }).run();
+    const current = editor.getAttributes("textStyle");
+    editor
+      .chain()
+      .focus()
+      .setMark("textStyle", { ...current, fontFamily: font })
+      .run();
   };
 
   return (
@@ -215,7 +222,7 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
       <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
         <div className="flex items-center justify-between p-2 border-b">
           <div className="flex items-center space-x-4">
-            <div className="w-6 h-6 bg-blue-600 rounded"></div>
+            <div className="w-6 h-6 bg-blue-600 rounded" />
             <div className="flex flex-col">
               <input
                 type="text"
