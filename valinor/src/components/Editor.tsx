@@ -7,6 +7,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { Color } from "@tiptap/extension-color";
 import { Extension } from "@tiptap/core";
 import TextStyle from "@tiptap/extension-text-style";
+import { MenuBar, DocumentStats, VersionHistory } from "./DocumentFeatures";
 
 import {
   Bold,
@@ -218,6 +219,7 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
+      <MenuBar editor={editor} />
       {/* Main Toolbar */}
       <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
         <div className="flex items-center justify-between p-2 border-b">
@@ -338,6 +340,7 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
+      <DocumentStats editor={editor} />
     </div>
   );
 };
