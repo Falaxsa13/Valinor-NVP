@@ -1,19 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
+import TextStyle from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-color";
+import { Extension } from "@tiptap/core";
+
 import {
   Bold,
   Italic,
   Underline as UnderlineIcon,
   Strikethrough,
-  Heading2,
   List,
   ListOrdered,
-  Quote,
-  Code,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -27,6 +28,62 @@ import {
 interface EditorProps {
   onContentChange: (content: string) => void;
 }
+
+const FONT_SIZES = [
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+  "14",
+  "16",
+  "18",
+  "20",
+  "24",
+  "30",
+  "36",
+  "48",
+  "60",
+  "72",
+  "96",
+];
+
+const FONT_FAMILIES = [
+  "Arial",
+  "Times New Roman",
+  "Courier New",
+  "Georgia",
+  "Verdana",
+  "Helvetica",
+];
+
+// Custom FontSize extension using TextStyle
+const FontSize = Extension.create({
+  name: "fontSize",
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["textStyle"],
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (element) => {
+              return element.style.fontSize
+                ? element.style.fontSize.replace("px", "")
+                : null;
+            },
+            renderHTML: (attributes) => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return { style: `font-size: ${attributes.fontSize}px` };
+            },
+          },
+        },
+      },
+    ];
+  },
+});
 
 const MenuButton = ({
   isActive = false,
@@ -47,11 +104,69 @@ const MenuButton = ({
   </button>
 );
 
+const Dropdown = ({
+  value,
+  options,
+  onChange,
+  className = "",
+}: {
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  className?: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        className={`flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded ${className}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {value}
+        <ChevronDown className="w-4 h-4 ml-1" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
+          {options.map((option) => (
+            <button
+              key={option}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+              onClick={() => {
+                onChange(option);
+                setIsOpen(false);
+              }}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const EnhancedEditor = ({ onContentChange }: EditorProps) => {
+  const [fontSize, setFontSize] = useState("11");
+  const [fontFamily, setFontFamily] = useState("Arial");
+
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        paragraph: {
+          HTMLAttributes: {
+            class: "mb-3",
+          },
+        },
+      }),
       Underline,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      TextStyle, // Needed for inline styling
+      FontSize, // Our custom FontSize extension
+      Color,
       Placeholder.configure({
         placeholder: "Type @ to insert, or start writing...",
       }),
@@ -61,6 +176,12 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
       if (editor) {
         onContentChange(editor.getHTML());
       }
+    },
+    editorProps: {
+      attributes: {
+        class:
+          "prose max-w-none focus:outline-none min-h-[calc(100vh-8rem)] px-16 py-12",
+      },
     },
   });
 
@@ -72,6 +193,21 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
       </div>
     );
   }
+
+  const updateFontSize = (size: string) => {
+    setFontSize(size);
+    // Use updateAttributes to update an existing mark or store for future text
+    editor
+      .chain()
+      .focus()
+      .updateAttributes("textStyle", { fontSize: size })
+      .run();
+  };
+
+  const updateFontFamily = (font: string) => {
+    setFontFamily(font);
+    editor.chain().focus().setMark("textStyle", { fontFamily: font }).run();
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -98,20 +234,18 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
         {/* Formatting Toolbar */}
         <div className="flex flex-wrap items-center p-1 gap-1 border-b">
           <div className="flex items-center border-r pr-2 mr-2">
-            <button
-              className="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
-              onClick={() => {}}
-            >
-              Arial
-              <ChevronDown className="w-4 h-4 ml-1" />
-            </button>
-            <button
-              className="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
-              onClick={() => {}}
-            >
-              11
-              <ChevronDown className="w-4 h-4 ml-1" />
-            </button>
+            <Dropdown
+              value={fontFamily}
+              options={FONT_FAMILIES}
+              onChange={updateFontFamily}
+              className="min-w-[120px]"
+            />
+            <Dropdown
+              value={fontSize}
+              options={FONT_SIZES}
+              onChange={updateFontSize}
+              className="min-w-[60px]"
+            />
           </div>
 
           <MenuButton onClick={() => editor.chain().focus().undo().run()}>
@@ -175,16 +309,19 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
           <div className="h-4 border-r mx-2" />
 
           <MenuButton
+            isActive={editor.isActive({ textAlign: "left" })}
             onClick={() => editor.chain().focus().setTextAlign("left").run()}
           >
             <AlignLeft className="w-4 h-4" />
           </MenuButton>
           <MenuButton
+            isActive={editor.isActive({ textAlign: "center" })}
             onClick={() => editor.chain().focus().setTextAlign("center").run()}
           >
             <AlignCenter className="w-4 h-4" />
           </MenuButton>
           <MenuButton
+            isActive={editor.isActive({ textAlign: "right" })}
             onClick={() => editor.chain().focus().setTextAlign("right").run()}
           >
             <AlignRight className="w-4 h-4" />
@@ -193,12 +330,7 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
       </div>
 
       {/* Editor Content */}
-      <div className="min-h-screen bg-white px-16 py-12">
-        <EditorContent
-          editor={editor}
-          className="prose max-w-none focus:outline-none"
-        />
-      </div>
+      <EditorContent editor={editor} />
     </div>
   );
 };
