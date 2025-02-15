@@ -8,15 +8,8 @@ import {
   Search,
   Bell,
   Menu as MenuIcon,
-  Plus,
-  Grid,
-  List,
-  ChevronDown,
-  Clock,
-  Star,
   Folder,
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import ProjectsView from "./ProjectsView";
 import CalendarView from "./CalendarView";
 
@@ -24,32 +17,40 @@ const DashboardHeader = () => {
   return (
     <header className="flex items-center justify-between h-14 px-4 border-b bg-white">
       <div className="flex items-center space-x-4">
-        <button className="p-2 hover:bg-gray-100 rounded-full">
+        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
           <MenuIcon size={20} className="text-gray-600" />
         </button>
-        <h1 className="text-xl font-medium text-gray-800">Dashboard</h1>
+        <div className="h-6 w-px bg-gray-200" />
+        <h1 className="text-lg font-semibold text-gray-800">Dashboard</h1>
       </div>
 
-      <div className="flex-1 max-w-2xl mx-4">
+      <div className="flex-1 max-w-2xl mx-8">
         <div className="relative">
           <Search
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            size={20}
+            size={18}
           />
           <input
             type="text"
-            placeholder="Search"
-            className="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500"
+            placeholder="Search in Dashboard"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg 
+                     text-sm placeholder-gray-500 outline-none
+                     focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500
+                     transition-all duration-200"
           />
         </div>
       </div>
 
-      <div className="flex items-center space-x-3">
-        <button className="p-2 hover:bg-gray-100 rounded-full relative">
+      <div className="flex items-center space-x-4">
+        <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
           <Bell size={20} className="text-gray-600" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
         </button>
-        <button className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
+        <div className="h-8 w-px bg-gray-200" />
+        <button
+          className="w-9 h-9 rounded-full bg-blue-600 text-white font-medium 
+                        flex items-center justify-center hover:bg-blue-700 transition-colors"
+        >
           A
         </button>
       </div>
@@ -65,55 +66,57 @@ interface SideNavProps {
 const SideNav: React.FC<SideNavProps> = ({ activeTab, setActiveTab }) => {
   return (
     <nav className="w-64 bg-white border-r h-full flex flex-col">
-      <div className="p-8"></div>
-
-      <div className="flex-1 px-3">
-        <div className="space-y-1">
+      <div className="flex-1 py-6">
+        <div className="px-3 space-y-0.5">
           <button
             onClick={() => setActiveTab("projects")}
-            className={`flex items-center space-x-3 w-full px-4 py-2 text-sm rounded-lg transition-colors ${
-              activeTab === "projects"
-                ? "bg-blue-50 text-blue-600"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
+            className={`flex items-center w-full px-4 py-2.5 text-sm rounded-lg transition-colors
+                       ${
+                         activeTab === "projects"
+                           ? "bg-blue-50 text-blue-600 font-medium"
+                           : "text-gray-700 hover:bg-gray-50"
+                       }`}
           >
-            <LayoutDashboard size={20} />
+            <LayoutDashboard size={18} className="mr-3" />
             <span>Dashboard</span>
           </button>
 
           <button
             onClick={() => setActiveTab("calendar")}
-            className={`flex items-center space-x-3 w-full px-4 py-2 text-sm rounded-lg transition-colors ${
-              activeTab === "calendar"
-                ? "bg-blue-50 text-blue-600"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
+            className={`flex items-center w-full px-4 py-2.5 text-sm rounded-lg transition-colors
+                       ${
+                         activeTab === "calendar"
+                           ? "bg-blue-50 text-blue-600 font-medium"
+                           : "text-gray-700 hover:bg-gray-50"
+                       }`}
           >
-            <Calendar size={20} />
+            <Calendar size={18} className="mr-3" />
             <span>Calendar</span>
           </button>
 
           <button
             onClick={() => (window.location.href = "/editor")}
-            className="flex items-center space-x-3 w-full px-4 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            className="flex items-center w-full px-4 py-2.5 text-sm rounded-lg 
+                     text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            <FileText size={20} />
+            <FileText size={18} className="mr-3" />
             <span>Editor</span>
           </button>
         </div>
 
-        <div className="mt-6">
-          <h3 className="px-4 mb-2 text-xs font-medium text-gray-500 uppercase">
+        <div className="mt-8 px-3">
+          <h3 className="px-4 mb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
             Recent Projects
           </h3>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {["Marketing Campaign", "Website Redesign", "Mobile App"].map(
               (project) => (
                 <button
                   key={project}
-                  className="flex items-center space-x-3 w-full px-4 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center w-full px-4 py-2.5 text-sm rounded-lg 
+                           text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  <Folder size={20} className="text-gray-400" />
+                  <Folder size={18} className="mr-3 text-gray-400" />
                   <span>{project}</span>
                 </button>
               )
@@ -123,14 +126,22 @@ const SideNav: React.FC<SideNavProps> = ({ activeTab, setActiveTab }) => {
       </div>
 
       <div className="p-3 border-t">
-        <button className="flex items-center space-x-3 w-full px-4 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
-          <Settings size={20} />
-          <span>Settings</span>
-        </button>
-        <button className="flex items-center space-x-3 w-full px-4 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
-          <HelpCircle size={20} />
-          <span>Help & Support</span>
-        </button>
+        <div className="space-y-0.5">
+          <button
+            className="flex items-center w-full px-4 py-2.5 text-sm rounded-lg 
+                         text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Settings size={18} className="mr-3" />
+            <span>Settings</span>
+          </button>
+          <button
+            className="flex items-center w-full px-4 py-2.5 text-sm rounded-lg 
+                         text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <HelpCircle size={18} className="mr-3" />
+            <span>Help & Support</span>
+          </button>
+        </div>
       </div>
     </nav>
   );
@@ -154,7 +165,7 @@ const Dashboard = () => {
       <SideNav activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        {renderView()}
+        <main className="flex-1 overflow-auto bg-gray-50">{renderView()}</main>
       </div>
     </div>
   );
