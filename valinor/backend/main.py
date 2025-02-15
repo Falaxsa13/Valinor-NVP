@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import openai
 from openai import OpenAI
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,3 +46,41 @@ def generate_latex(request: TextRequest):
     )
 
     return {"latex": response.choices[0].message.content.strip()}
+
+
+class RoadmapRequest(BaseModel):
+    title: str
+    description: str = ""
+    template: dict
+    collaborators: list[str] = []
+    deadline: str = ""
+    assignments: dict = Field(default_factory=dict)
+
+
+@app.post("/generate-roadmap")
+def generate_roadmap(request: RoadmapRequest):
+
+    assignments_str = ", ".join(
+        [
+            f"{section}: {collab if collab else 'Unassigned'}"
+            for section, collab in request.assignments.items()
+        ]
+    )
+
+    prompt = (
+        f"Generate a detailed project roadmap for the project titled '{request.title}'. "
+        f"Description: {request.description}. "
+        f"Template: {request.template}. "
+        f"Collaborators: {', '.join(request.collaborators)}. "
+        f"Deadline: {request.deadline}. "
+        f"Assignments: {assignments_str}."
+    )
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are an expert project manager."},
+            {"role": "user", "content": prompt},
+        ],
+    )
+    roadmap = response.choices[0].message.content.strip()
+    return {"roadmap": roadmap}

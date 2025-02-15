@@ -1,22 +1,68 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // Next.js 13+ App Router hook
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+// Define a Template type
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  structure: any; // a JSON structure for titles/subtitles
+}
+
+// Example templates (hardcoded for now)
+const templates: Template[] = [
+  {
+    id: "template1",
+    name: "Business Plan",
+    description:
+      "A structured business plan with market analysis, strategy, etc.",
+    structure: {
+      sections: [
+        { title: "Executive Summary", subtitles: [] },
+        {
+          title: "Market Analysis",
+          subtitles: ["Industry Overview", "Target Market"],
+        },
+        { title: "Strategy", subtitles: ["Marketing Plan", "Sales Plan"] },
+      ],
+    },
+  },
+  {
+    id: "template2",
+    name: "Project Proposal",
+    description: "A detailed project proposal template.",
+    structure: {
+      sections: [
+        { title: "Introduction", subtitles: [] },
+        { title: "Project Description", subtitles: [] },
+        { title: "Budget", subtitles: [] },
+        { title: "Timeline", subtitles: [] },
+      ],
+    },
+  },
+];
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // TODO: Save the new project (e.g., via an API call or update global state)
-    console.log("New project created:", { title, description });
-
-    // For now, simply redirect back to the projects view.
-    router.push("/");
+    const projectData = {
+      title,
+      description,
+      template: selectedTemplate,
+    };
+    // Save data in localStorage to persist between steps
+    localStorage.setItem("newProjectData", JSON.stringify(projectData));
+    router.push("/projects/new/parameters");
   };
 
   return (
@@ -53,12 +99,32 @@ export default function NewProjectPage() {
             rows={4}
           ></textarea>
         </div>
+        <div>
+          <h2 className="text-lg font-semibold mb-2">Select a Template</h2>
+          <div className="grid grid-cols-1 gap-4">
+            {templates.map((template) => (
+              <div
+                key={template.id}
+                className={`p-4 border rounded cursor-pointer ${
+                  selectedTemplate?.id === template.id
+                    ? "border-blue-500"
+                    : "border-gray-300"
+                }`}
+                onClick={() => setSelectedTemplate(template)}
+              >
+                <h3 className="font-bold">{template.name}</h3>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="flex space-x-4">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            disabled={!selectedTemplate}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
           >
-            Create Project
+            Next
           </button>
           <Link
             href="/"
