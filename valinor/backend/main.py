@@ -1,13 +1,31 @@
 import json
 import datetime
+from pprint import pformat, pprint
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from typing import List, Dict
+from datetime import date
+
+from models import (
+    PhaseMetrics,
+    Project,
+    ProjectAssignment,
+    ProjectCollaborator,
+    ProjectFullMetrics,
+    ProjectInDB,
+    ProjectMetrics,
+    TimelineEntry,
+    TimelineEntryOut,
+)
 
 import json
 
 # SQLAlchemy imports
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import SessionLocal, engine, Base
 from models import Project, TimelineEntry
 
@@ -143,7 +161,9 @@ def generate_roadmap(request: RoadmapRequest):
     return result_json
 
 
-# Dependency: Get a DB session.
+# --------------------------------------------
+# Dependency to get DB session.
+# --------------------------------------------
 def get_db():
     db = SessionLocal()
     try:
@@ -209,11 +229,10 @@ def create_project(request: RoadmapRequest, db: Session = Depends(get_db)):
             status_code=400,
             detail=f"Failed to parse timeline: {e}. Raw response: {result_text}",
         )
-
     if not isinstance(timeline_data, list):
         raise HTTPException(status_code=400, detail="Unexpected timeline format.")
 
-    # Convert startDate and deadline strings to date objects.
+    # Convert dates
     try:
         start_date_obj = datetime.datetime.strptime(
             request.startDate, "%Y-%m-%d"
@@ -222,20 +241,36 @@ def create_project(request: RoadmapRequest, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Date conversion error: {e}")
 
-    # Create the new project.
+    # Create a new project.
+    # Note: Since our Project model now uses relationships for collaborators and assignments,
+    # we must create those related objects.
     new_project = Project(
         title=request.title,
         description=request.description,
-        template=request.template,
-        collaborators=request.collaborators,
-        assignments=request.assignments,
         start_date=start_date_obj,
         deadline=deadline_obj,
+        template_id=request.template.get("id"),  # Store only the template ID
     )
     db.add(new_project)
     db.commit()
     db.refresh(new_project)
 
+    # Migrate collaborators from the request into ProjectCollaborator records.
+    for email in request.collaborators:
+        collaborator = ProjectCollaborator(project_id=new_project.id, email=email)
+        db.add(collaborator)
+    db.commit()
+
+    # Migrate assignments from the request into ProjectAssignment records.
+    # The request.assignments is a dict mapping section names to assigned email.
+    for section, assigned_email in request.assignments.items():
+        assignment = ProjectAssignment(
+            project_id=new_project.id, section=section, assigned_email=assigned_email
+        )
+        db.add(assignment)
+    db.commit()
+
+    # Now, add timeline entries.
     for entry in timeline_data:
         try:
             entry_start = datetime.datetime.strptime(
@@ -246,7 +281,6 @@ def create_project(request: RoadmapRequest, db: Session = Depends(get_db)):
             raise HTTPException(
                 status_code=400, detail=f"Error parsing timeline dates: {e}"
             )
-
         timeline_entry = TimelineEntry(
             project_id=new_project.id,
             section=entry.get("section"),
@@ -256,7 +290,6 @@ def create_project(request: RoadmapRequest, db: Session = Depends(get_db)):
             end=entry_end,
         )
         db.add(timeline_entry)
-
     db.commit()
 
     return {
@@ -266,12 +299,52 @@ def create_project(request: RoadmapRequest, db: Session = Depends(get_db)):
     }
 
 
-@app.get("/projects")
+# --------------------------------------------
+# Endpoint: Read all projects.
+# --------------------------------------------
+@app.get("/projects", response_model=List[ProjectInDB])
 def read_projects(db: Session = Depends(get_db)):
-    projects = db.query(Project).all()
-    return projects
+    projects = (
+        db.query(Project)
+        .options(
+            joinedload(Project.timeline_entries),
+            joinedload(Project.collaborators),  # ✅ Load collaborators correctly
+        )
+        .all()
+    )
+
+    # Convert `Project` objects into dictionaries and format collaborators
+    return [
+        ProjectInDB(
+            id=project.id,
+            title=project.title,
+            description=project.description,
+            start_date=project.start_date,
+            deadline=project.deadline,
+            template_id=project.template_id,
+            timeline_entries=[
+                TimelineEntryOut(
+                    id=entry.id,
+                    project_id=entry.project_id,
+                    section=entry.section,
+                    subtitle=entry.subtitle or "",
+                    responsible=entry.responsible or "",
+                    start=entry.start,
+                    end=entry.end,
+                )
+                for entry in project.timeline_entries
+            ],
+            collaborators=[
+                collab.email for collab in project.collaborators
+            ],  # ✅ Extract only emails
+        )
+        for project in projects
+    ]
 
 
+# --------------------------------------------
+# Endpoint: Delete a project.
+# --------------------------------------------
 @app.delete("/projects/{project_id}")
 def delete_project(project_id: int, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -280,3 +353,94 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     db.delete(project)
     db.commit()
     return {"message": "Project deleted successfully"}
+
+
+# --------------------------------------------
+# Endpoint: Read one project.
+# --------------------------------------------
+@app.get("/projects/{project_id}", response_model=ProjectInDB)
+def read_project(project_id: int, db: Session = Depends(get_db)):
+    project = (
+        db.query(Project)
+        .options(joinedload(Project.timeline_entries))
+        .filter(Project.id == project_id)
+        .first()
+    )
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+# --------------------------------------------
+# Endpoint: Get project team metrics.
+# --------------------------------------------
+@app.get("/projects/{project_id}/team", response_model=ProjectMetrics)
+def get_project_team(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    # Extract emails from the related collaborators.
+    collaborators = [collab.email for collab in project.collaborators]
+    return ProjectMetrics(
+        total_members=len(collaborators),
+        active_members=len(
+            collaborators
+        ),  # All considered active if no status is stored.
+        team_members=collaborators,
+        roles_distribution={},  # Roles not implemented.
+    )
+
+
+# --------------------------------------------
+# Endpoint: Get project phase metrics.
+# --------------------------------------------
+@app.get("/projects/{project_id}/phases", response_model=PhaseMetrics)
+def get_project_phases(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    timeline_entries = (
+        db.query(TimelineEntry).filter(TimelineEntry.project_id == project_id).all()
+    )
+    total_phases = len(timeline_entries)
+    current_date = date.today()
+    completed_phases = sum(1 for entry in timeline_entries if current_date > entry.end)
+    in_progress_phases = sum(
+        1 for entry in timeline_entries if entry.start <= current_date <= entry.end
+    )
+    upcoming_phases = sum(1 for entry in timeline_entries if current_date < entry.start)
+    completion_percentage = (
+        (completed_phases / total_phases * 100) if total_phases > 0 else 0
+    )
+    return PhaseMetrics(
+        total_phases=total_phases,
+        completed_phases=completed_phases,
+        in_progress_phases=in_progress_phases,
+        upcoming_phases=upcoming_phases,
+        completion_percentage=round(completion_percentage, 2),
+        phase_distribution={
+            "completed": completed_phases,
+            "in_progress": in_progress_phases,
+            "upcoming": upcoming_phases,
+        },
+    )
+
+
+def get_roles_distribution(collaborators: List[Dict]) -> Dict:
+    roles = {}
+    for member in collaborators:
+        role = member.get("role", "Unassigned")
+        roles[role] = roles.get(role, 0) + 1
+    return roles
+
+
+# --------------------------------------------
+# Endpoint: Get full project metrics.
+# --------------------------------------------
+@app.get("/projects/{project_id}/metrics", response_model=ProjectFullMetrics)
+def get_project_metrics(project_id: int, db: Session = Depends(get_db)):
+    team_data = get_project_team(project_id, db)
+    phases_data = get_project_phases(project_id, db)
+    return ProjectFullMetrics(
+        team=team_data, phases=phases_data, last_updated=date.today().isoformat()
+    )
