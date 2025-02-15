@@ -56,6 +56,100 @@ const templates: Template[] = [
     },
   },
   {
+    id: "template_ycombinator",
+    name: "Y Combinator Application",
+    description:
+      "A structured template for Y Combinator's startup accelerator application, covering team, product, market, and financials.",
+    icon: <Briefcase className="w-5 h-5" />,
+    structure: {
+      sections: [
+        {
+          title: "General Information",
+          subtitles: [
+            "Startup Name",
+            "Website",
+            "Company Tagline",
+            "Location",
+            "Founded Date",
+          ],
+        },
+        {
+          title: "Founders Information",
+          subtitles: [
+            "Full Name",
+            "Email Address",
+            "LinkedIn",
+            "Personal Website",
+            "GitHub/Portfolio",
+            "Twitter",
+            "Role in the Company",
+            "Other Commitments",
+          ],
+        },
+        {
+          title: "Idea & Product",
+          subtitles: [
+            "Company Description",
+            "What’s New or Interesting?",
+            "How It Works",
+            "Target Customers",
+            "Problem You Are Solving",
+            "Alternative Solutions & Your Advantage",
+            "Demo Link",
+          ],
+        },
+        {
+          title: "Market & Growth",
+          subtitles: [
+            "Competitors",
+            "Biggest Risk for Failure",
+            "Revenue Model",
+            "Long-term Vision",
+          ],
+        },
+        {
+          title: "Traction & Progress",
+          subtitles: [
+            "What Have You Built?",
+            "Active Users & Customers",
+            "Key Metrics",
+            "Customer Acquisition Strategy",
+            "Recent Wins",
+          ],
+        },
+        {
+          title: "Funding & Financials",
+          subtitles: [
+            "Previous Funding",
+            "Fundraising Goals",
+            "Monthly Burn Rate",
+            "Use of Funds",
+          ],
+        },
+        {
+          title: "Team & Background",
+          subtitles: [
+            "How Did the Founders Meet?",
+            "Why Is This the Right Team?",
+            "Past Collaborations",
+            "Full-time Commitment",
+            "Commitment If Accepted",
+          ],
+        },
+        {
+          title: "Miscellaneous",
+          subtitles: [
+            "Past YC Applications",
+            "Impressive Achievements",
+            "Funniest or Most Surprising Fact",
+            "Why This Startup?",
+            "Additional Information",
+          ],
+        },
+      ],
+    },
+  },
+  {
     id: "blank",
     name: "Blank Project",
     description:

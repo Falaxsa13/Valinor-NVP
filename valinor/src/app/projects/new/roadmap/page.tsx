@@ -1,74 +1,102 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import axios from "axios";
 
-export default function ProjectRoadmapPage() {
+export default function CreateProjectPage() {
   const router = useRouter();
-  const [projectData, setProjectData] = useState<any>(null);
-  const [roadmap, setRoadmap] = useState("");
   const [loading, setLoading] = useState(true);
+  const [projectResponse, setProjectResponse] = useState<any>(null);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
+    // Retrieve the saved project data from localStorage.
     const stored = localStorage.getItem("newProjectData");
-    if (stored) {
-      setProjectData(JSON.parse(stored));
-    } else {
+    if (!stored) {
       router.push("/projects/new");
+      return;
     }
+    const projectData = JSON.parse(stored);
+    console.log("Project data:", projectData);
+
+    // Send the project data to your backend endpoint to create the project.
+    axios
+      .post("http://localhost:8000/create-project", projectData)
+      .then((response) => {
+        console.log("Create project response:", response.data);
+        setProjectResponse(response.data);
+        // Remove the project data from localStorage to prevent duplicate creation.
+        localStorage.removeItem("newProjectData");
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error creating project:", err);
+        setError("Failed to create project. Please try again later.");
+        setLoading(false);
+      });
   }, [router]);
 
-  useEffect(() => {
-    if (projectData) {
-      axios
-        .post("http://localhost:8000/generate-roadmap", projectData)
-        .then((response) => {
-          setRoadmap(response.data.roadmap);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error generating roadmap:", error);
-          setRoadmap("Error generating roadmap.");
-          setLoading(false);
-        });
-    }
-  }, [projectData]);
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <p>Creating project...</p>
+      </div>
+    );
+  }
 
-  const handleConfirm = () => {
-    // TODO: Send projectData (and roadmap) to backend to finalize project creation
-    console.log("Project confirmed:", projectData, roadmap);
-    localStorage.removeItem("newProjectData");
-    router.push("/"); // Redirect to dashboard or projects list
-  };
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Project Roadmap</h1>
-      {loading ? (
-        <p>Generating roadmap, please wait...</p>
-      ) : (
-        <>
-          <div className="border p-4 rounded bg-white shadow mb-4">
-            <pre className="whitespace-pre-wrap">{roadmap}</pre>
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Project Created Successfully!</h1>
+      <p className="mb-4">Project ID: {projectResponse.project_id}</p>
+
+      {projectResponse.timeline && projectResponse.timeline.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-2">Timeline</h2>
+          <div className="bg-gray-100 p-4 rounded overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-200 text-gray-700">
+                  <th className="p-2 border">Section</th>
+                  <th className="p-2 border">Subtitle</th>
+                  <th className="p-2 border">Responsible</th>
+                  <th className="p-2 border">Start Date</th>
+                  <th className="p-2 border">End Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectResponse.timeline.map((entry: any, index: number) => (
+                  <tr key={index} className="border-b">
+                    <td className="p-2 border">{entry.section}</td>
+                    <td className="p-2 border">{entry.subtitle || "—"}</td>
+                    <td className="p-2 border">
+                      {entry.responsible || "Unassigned"}
+                    </td>
+                    <td className="p-2 border">{entry.start}</td>
+                    <td className="p-2 border">{entry.end}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="flex space-x-4">
-            <button
-              onClick={handleConfirm}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-            >
-              Confirm Project
-            </button>
-            <Link
-              href="/projects/new/parameters"
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
-            >
-              Back
-            </Link>
-          </div>
-        </>
+        </section>
       )}
+
+      <Link
+        href="/dashboard"
+        className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+      >
+        Back to Dashboard
+      </Link>
     </div>
   );
 }

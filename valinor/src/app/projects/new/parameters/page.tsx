@@ -22,6 +22,7 @@ export default function ProjectParametersPage() {
   const router = useRouter();
   const [collaboratorInput, setCollaboratorInput] = useState("");
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [startDate, setStartDate] = useState(""); // New state for start date
   const [deadline, setDeadline] = useState("");
   const [projectData, setProjectData] = useState<any>(null);
 
@@ -61,6 +62,7 @@ export default function ProjectParametersPage() {
     const updatedData = {
       ...projectData,
       collaborators: collaborators.map((c) => c.email),
+      startDate,
       deadline,
     };
     localStorage.setItem("newProjectData", JSON.stringify(updatedData));
@@ -86,7 +88,6 @@ export default function ProjectParametersPage() {
               <p className="text-sm text-gray-500 mt-0.5">Step 2 of 3</p>
             </div>
           </div>
-
           {projectData && (
             <div className="text-sm text-gray-600">{projectData.title}</div>
           )}
@@ -158,6 +159,27 @@ export default function ProjectParametersPage() {
             </div>
           </div>
 
+          {/* Start Date Section */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <Calendar className="w-5 h-5 text-gray-400" />
+              <h2 className="text-lg font-medium text-gray-900">
+                Project Start Date
+              </h2>
+            </div>
+            <div>
+              <input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg
+                         text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                         transition-colors"
+              />
+            </div>
+          </div>
+
           {/* Deadline Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex items-center space-x-3 mb-4">
@@ -166,7 +188,6 @@ export default function ProjectParametersPage() {
                 Project Deadline
               </h2>
             </div>
-
             <div>
               <input
                 id="deadline"
