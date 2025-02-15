@@ -109,18 +109,16 @@ const SideNav: React.FC<SideNavProps> = ({ activeTab, setActiveTab }) => {
             Recent Projects
           </h3>
           <div className="space-y-0.5">
-            {["Marketing Campaign", "Website Redesign", "Mobile App"].map(
-              (project) => (
-                <button
-                  key={project}
-                  className="flex items-center w-full px-4 py-2.5 text-sm rounded-lg 
+            {["Marketing Campaign", "Product launch"].map((project) => (
+              <button
+                key={project}
+                className="flex items-center w-full px-4 py-2.5 text-sm rounded-lg 
                            text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  <Folder size={18} className="mr-3 text-gray-400" />
-                  <span>{project}</span>
-                </button>
-              )
-            )}
+              >
+                <Folder size={18} className="mr-3 text-gray-400" />
+                <span>{project}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
