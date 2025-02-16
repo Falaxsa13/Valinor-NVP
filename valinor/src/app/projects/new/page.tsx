@@ -48,7 +48,7 @@ export default function NewProjectPage() {
     const projectData = {
       title,
       description,
-      templateId: selectedTemplate?.id, // Store template ID instead of full object
+      templateId: selectedTemplate?.id,
     };
     localStorage.setItem("newProjectData", JSON.stringify(projectData));
     router.push("/projects/new/parameters");

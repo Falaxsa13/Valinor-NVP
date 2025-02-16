@@ -179,3 +179,8 @@ def delete_project_by_id(project_id: int, db: Session):
 def get_all_templates(db: Session):
     """Retrieves all templates from the database."""
     return db.query(Template).all()
+
+
+def get_template_by_id(template_id: int, db: Session):
+    """Retrieves a template by its ID."""
+    return db.query(Template).filter(Template.id == template_id).first()

@@ -42,3 +42,14 @@ export const getTemplates = async () => {
     throw new Error("Failed to fetch templates.");
   }
 };
+
+export const getTemplateById = async (templateId: number) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/templates/${templateId}`);
+    console.log("Fetched template:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching template:", error);
+    throw new Error("Failed to fetch template.");
+  }
+};
