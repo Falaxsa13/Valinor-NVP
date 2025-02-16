@@ -1,26 +1,31 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from io import BytesIO
-import PyPDF2
+from app.services.pdf_service import parse_pdf, generate_template
 
 router = APIRouter()
+
 @router.get("/")
 async def get_parsing_status():
     return {"message": "Welcome to the parsing endpoints"}
 
 @router.post("/parse")
-async def parse_pdf(file: UploadFile = File(...)):
+async def parse_pdf_endpoint(file: UploadFile = File(...)):
+    """
+    API endpoint to parse an uploaded PDF.
+    Args:
+        file (UploadFile): The uploaded PDF file.
+    Returns:
+        dict: Parsed PDF information (filename, page count, extracted text).
+    """
     try:
+        print("Starting PDF parsing")
+        print(file)
         contents = await file.read()
-        pdf_file = BytesIO(contents)
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        parsed_data = parse_pdf(contents, file.filename)  # Calls service function
 
-        text_content = [page.extract_text() for page in pdf_reader.pages]
-        full_text = "\n".join(text_content)
+        template_object = generate_template(parsed_data["content"], file.filename)
 
         return {
-            "filename": file.filename,
-            "page_count": len(pdf_reader.pages),
-            "content": full_text
+            "data": template_object
         }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to parse PDF: {str(e)}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
