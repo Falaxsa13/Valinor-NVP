@@ -1,7 +1,7 @@
 import json
 import datetime
 from pprint import pformat, pprint
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import APIRouter, Depends, HTTPException
@@ -444,3 +444,38 @@ def get_project_metrics(project_id: int, db: Session = Depends(get_db)):
     return ProjectFullMetrics(
         team=team_data, phases=phases_data, last_updated=date.today().isoformat()
     )
+
+@app.post("/parse-pdf")
+async def parse_pdf(file: UploadFile = File(...)):
+    try:
+        # Read the uploaded file into memory
+        contents = await file.read()
+        pdf_file = BytesIO(contents)
+        
+        # Create PDF reader object
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        
+        # Extract text from all pages
+        text_content = []
+        for page in pdf_reader.pages:
+            text_content.append(page.extract_text())
+        
+        # Join all pages with newlines
+        full_text = "\n".join(text_content)
+        
+        # Create a structured response
+        response = {
+            "filename": file.filename,
+            "page_count": len(pdf_reader.pages),
+            "content": full_text
+        }
+        print(response)
+        
+        return response
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to parse PDF: {str(e)}"
+        )
+
