@@ -166,6 +166,7 @@ export default function NewProjectPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     null
   );
+  const [customTemplates, setCustomTemplates] = useState<Template[]>(templates);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,7 +253,7 @@ export default function NewProjectPage() {
               Choose a Template
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {templates.map((template) => (
+              {customTemplates.map((template) => (
                 <button
                   key={template.id}
                   type="button"
@@ -309,11 +310,19 @@ export default function NewProjectPage() {
                     const file = e.target.files?.[0];
                     if (file) {
                       try {
+                        console.log('Uploading file:', file);
                         const parsedData = await parsePdf(file);
                         console.log('Parsed PDF data:', parsedData);
+                        
+                        // Add the new template to the array
+                        const newTemplate = parsedData.data;
+                        setCustomTemplates(prevTemplates => [...prevTemplates, newTemplate]);
+                        
+                        // Optionally, automatically select the new template
+                        setSelectedTemplate(newTemplate);
                       } catch (error) {
                         console.error('Error parsing PDF:', error);
-                        // Handle error state here
+                        // TODO: Add error handling UI feedback
                       }
                     }
                   }}
