@@ -13,3 +13,20 @@ export const generateLatex = async (content: string) => {
     return "Error generating LaTeX.";
   }
 };
+
+export const parsePdf = async (file: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post(`${API_BASE_URL}/parse-pdf`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error parsing PDF:", error);
+    throw new Error("Error parsing PDF.");
+  }
+};

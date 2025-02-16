@@ -13,6 +13,7 @@ import {
   PlusCircle,
   Clipboard,
 } from "lucide-react";
+import { parsePdf } from '@/api/api';
 
 interface Template {
   id: string;
@@ -25,23 +26,6 @@ interface Template {
 const templates: Template[] = [
   {
     id: "template1",
-    name: "Business Plan",
-    description:
-      "A comprehensive business plan template with market analysis, strategy, and financial projections.",
-    icon: <Briefcase className="w-5 h-5" />,
-    structure: {
-      sections: [
-        { title: "Executive Summary", subtitles: [] },
-        {
-          title: "Market Analysis",
-          subtitles: ["Industry Overview", "Target Market"],
-        },
-        { title: "Strategy", subtitles: ["Marketing Plan", "Sales Plan"] },
-      ],
-    },
-  },
-  {
-    id: "template2",
     name: "Project Proposal",
     description:
       "A structured project proposal template for presenting new initiatives and securing stakeholder approval.",
@@ -90,7 +74,7 @@ const templates: Template[] = [
           title: "Idea & Product",
           subtitles: [
             "Company Description",
-            "What’s New or Interesting?",
+            "What's New or Interesting?",
             "How It Works",
             "Target Customers",
             "Problem You Are Solving",
@@ -148,6 +132,20 @@ const templates: Template[] = [
         },
       ],
     },
+  },
+  {
+    "id": "template_business_proposal",
+    "name": "Business Proposal",
+    "description": "A structured business proposal template for pitching new business ideas, partnerships, or investments.",
+    "icon": "📄",
+    "structure": {
+      "sections": [
+        {
+          "title": "Executive Summary",
+          "subtitles": []
+        }
+      ]
+    }
   },
   {
     id: "blank",
@@ -292,6 +290,65 @@ export default function NewProjectPage() {
                   />
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Upload Template Section */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Upload Template
+            </h2>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                <input
+                  type="file"
+                  id="templateFile"
+                  className="hidden"
+                  accept=".pdf"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const parsedData = await parsePdf(file);
+                        console.log('Parsed PDF data:', parsedData);
+                      } catch (error) {
+                        console.error('Error parsing PDF:', error);
+                        // Handle error state here
+                      }
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="templateFile"
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-full mb-3">
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 mb-1">
+                    Click to upload a template
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Supports PDF
+                  </div>
+                </label>
+              </div>
+              
+              <div className="text-sm text-gray-500">
+                <p>Upload your own template file to use as a starting point for your project.</p>
+              </div>
             </div>
           </div>
 
