@@ -2,16 +2,18 @@ import json
 import datetime
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.models.base import Project, TimelineEntry
 from app.schemas.project_schema import RoadmapRequest
 from openai import OpenAI
 from app.core.config import settings
+from app.models.project import Project
+from app.models.timeline import TimelineEntry
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
+
 def generate_project_timeline(request: RoadmapRequest):
     """Generates a detailed timeline using OpenAI based on project details."""
-    
+
     template_json = json.dumps(request.template)
     assignments_json = json.dumps(request.assignments)
 
@@ -63,9 +65,10 @@ def generate_project_timeline(request: RoadmapRequest):
 
     return timeline_data
 
+
 def create_project(request: RoadmapRequest, db: Session):
     """Creates a new project and generates a timeline."""
-    
+
     try:
         start_date_obj = datetime.datetime.strptime(request.startDate, "%Y-%m-%d").date()
         deadline_obj = datetime.datetime.strptime(request.deadline, "%Y-%m-%d").date()
@@ -115,9 +118,11 @@ def create_project(request: RoadmapRequest, db: Session):
         "timeline": timeline_data,
     }
 
+
 def get_all_projects(db: Session):
     """Fetch all projects from the database."""
     return db.query(Project).all()
+
 
 def delete_project_by_id(project_id: int, db: Session):
     """Deletes a project and its associated timeline entries."""
@@ -130,5 +135,5 @@ def delete_project_by_id(project_id: int, db: Session):
 
     db.delete(project)
     db.commit()
-    
+
     return {"message": "Project and its timeline deleted successfully"}

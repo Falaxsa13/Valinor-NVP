@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from datetime import date
 from typing import Dict, List
 
+
 # Pydantic model for generating a project timeline.
 class RoadmapRequest(BaseModel):
     title: str
@@ -13,7 +14,8 @@ class RoadmapRequest(BaseModel):
     assignments: dict = Field(default_factory=dict)
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
 
 class TimelineEntryResponse(BaseModel):
     id: int
@@ -24,7 +26,8 @@ class TimelineEntryResponse(BaseModel):
     end: date
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
 
 class ProjectResponse(BaseModel):
     id: int
@@ -38,6 +41,4 @@ class ProjectResponse(BaseModel):
     timeline_entries: List[TimelineEntryResponse] = []
 
     class Config:
-        orm_mode = True
-
-    
+        from_attributes = True
