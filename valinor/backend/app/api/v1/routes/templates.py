@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.services.project_service import get_all_templates, get_template_by_id
-from app.schemas.project_schema import RoadmapRequest, ProjectResponse, TemplateResponse
+from app.schemas.project_schema import ProjectResponse, TemplateResponse
 
 router = APIRouter()
 

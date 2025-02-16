@@ -2,7 +2,7 @@ import json
 import datetime
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.schemas.project_schema import CreateProjectRequest, GenerateTimelineRequest, RoadmapRequest
+from app.schemas.project_schema import CreateProjectRequest, GenerateTimelineRequest
 from openai import OpenAI
 from app.core.config import settings
 from app.models.project import Project

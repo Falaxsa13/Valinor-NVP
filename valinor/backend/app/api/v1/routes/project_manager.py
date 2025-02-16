@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
@@ -5,8 +6,15 @@ from app.services.project_service import (
     create_project,
     delete_project_by_id,
     get_all_projects,
+    generate_project_timeline,
 )
-from app.schemas.project_schema import CreateProjectRequest, ProjectResponse, TemplateResponse
+from app.schemas.project_schema import (
+    CreateProjectRequest,
+    GenerateTimelineRequest,
+    ProjectResponse,
+    TemplateResponse,
+    TimelineEntryResponse,
+)
 
 router = APIRouter()
 
