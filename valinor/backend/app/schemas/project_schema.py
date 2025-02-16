@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import date
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 # Pydantic model for generating a project timeline.
@@ -39,6 +39,28 @@ class ProjectResponse(BaseModel):
     start_date: date
     deadline: date
     timeline_entries: List[TimelineEntryResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+class TemplateSubtitleResponse(BaseModel):
+    id: int
+    subtitle: str
+
+
+class TemplateSectionResponse(BaseModel):
+    id: int
+    title: str
+    subtitles: List[TemplateSubtitleResponse]
+
+
+class TemplateResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    sections: List[TemplateSectionResponse]
 
     class Config:
         from_attributes = True

@@ -7,11 +7,14 @@ from openai import OpenAI
 from app.core.config import settings
 from app.models.project import Project
 from app.models.timeline import TimelineEntry
+from app.models.user import User
+from app.models.associations import project_collaborators
+from app.models.template import Template, TemplateSubtitle
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
-def generate_project_timeline(request: RoadmapRequest):
+def generate_project_timeline(request: RoadmapRequest) -> list:
     """Generates a detailed timeline using OpenAI based on project details."""
 
     template_json = json.dumps(request.template)
@@ -66,31 +69,46 @@ def generate_project_timeline(request: RoadmapRequest):
     return timeline_data
 
 
-def create_project(request: RoadmapRequest, db: Session):
+def create_project(request: RoadmapRequest, db: Session) -> dict:
     """Creates a new project and generates a timeline."""
 
     try:
         start_date_obj = datetime.datetime.strptime(request.startDate, "%Y-%m-%d").date()
         deadline_obj = datetime.datetime.strptime(request.deadline, "%Y-%m-%d").date()
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Date conversion error: {e}")
 
-    # Generate the timeline
-    timeline_data = generate_project_timeline(request)
+    # Ensure the template exists
+    template = db.query(Template).filter(Template.id == request.template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail=f"Template with ID {request.template_id} not found.")
 
     # Save project
     new_project = Project(
         title=request.title,
         description=request.description,
-        template=request.template,
-        collaborators=request.collaborators,
-        assignments=request.assignments,
         start_date=start_date_obj,
         deadline=deadline_obj,
+        template_id=template.id,
     )
+
     db.add(new_project)
     db.commit()
     db.refresh(new_project)
+
+    # Add collaborators
+    for email in request.collaborators:
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            db.execute(project_collaborators.insert().values(user_id=user.id, project_id=new_project.id))
+        else:
+            raise HTTPException(status_code=404, detail=f"User {email} not found.")
+
+    db.commit()
+
+    # Generate timeline
+    timeline_data = generate_project_timeline(request, db)
 
     # Save timeline entries
     for entry in timeline_data:
@@ -100,11 +118,30 @@ def create_project(request: RoadmapRequest, db: Session):
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error parsing timeline dates: {e}")
 
+        # Find subtitle ID
+        subtitle = (
+            db.query(TemplateSubtitle)
+            .filter(
+                TemplateSubtitle.subtitle == entry.get("subtitle"),
+                TemplateSubtitle.section.has(template_id=template.id),
+            )
+            .first()
+        )
+
+        if not subtitle:
+            raise HTTPException(
+                status_code=404, detail=f"Subtitle '{entry.get('subtitle')}' not found in template {template.id}."
+            )
+
+        # Find responsible user
+        responsible_user = db.query(User).filter(User.email == entry.get("responsible")).first()
+        responsible_id = responsible_user.id if responsible_user else None
+
         timeline_entry = TimelineEntry(
             project_id=new_project.id,
-            section=entry.get("section"),
-            subtitle=entry.get("subtitle"),
-            responsible=entry.get("responsible"),
+            subtitle_id=subtitle.id,
+            responsible_id=responsible_id,
+            description=entry.get("description"),
             start=entry_start,
             end=entry_end,
         )
@@ -113,7 +150,7 @@ def create_project(request: RoadmapRequest, db: Session):
     db.commit()
 
     return {
-        "message": "Project saved",
+        "message": "Project created successfully",
         "project_id": new_project.id,
         "timeline": timeline_data,
     }
@@ -137,3 +174,8 @@ def delete_project_by_id(project_id: int, db: Session):
     db.commit()
 
     return {"message": "Project and its timeline deleted successfully"}
+
+
+def get_all_templates(db: Session):
+    """Retrieves all templates from the database."""
+    return db.query(Template).all()

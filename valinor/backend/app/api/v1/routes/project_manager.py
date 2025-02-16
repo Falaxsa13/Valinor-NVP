@@ -5,8 +5,9 @@ from app.services.project_service import (
     create_project,
     delete_project_by_id,
     get_all_projects,
+    get_all_templates,
 )
-from app.schemas.project_schema import RoadmapRequest, ProjectResponse
+from app.schemas.project_schema import RoadmapRequest, ProjectResponse, TemplateResponse
 
 router = APIRouter()
 
