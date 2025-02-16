@@ -54,7 +54,68 @@ export const getTemplateById = async (templateId: number) => {
   }
 };
 
+interface TimelineEntry {
+  section: string;
+  subtitle?: string;
+  responsible?: string;
+  start: string;
+  end: string;
+}
+
 export const createProject = async (projectData: {
+  title: string;
+  description?: string;
+  templateId: number;
+  collaborators: string[];
+  startDate: string;
+  deadline: string;
+  assignments: Record<string, string>;
+  timeline: TimelineEntry[];
+}) => {
+  try {
+    const formattedData = {
+      title: projectData.title,
+      description: projectData.description,
+      template_id: projectData.templateId,
+      collaborators: projectData.collaborators,
+      start_date: projectData.startDate,
+      deadline: projectData.deadline,
+      assignments: projectData.assignments,
+      timeline: projectData.timeline,
+    };
+
+    const response = await axios.post(
+      `${API_BASE_URL}/project/create-project`,
+      formattedData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error creating project:", error);
+    throw new Error("Failed to create project.");
+  }
+};
+
+function formatJsonRequest(projectData: {
+  title: string;
+  description?: string;
+  templateId: number;
+  collaborators: string[];
+  startDate: string;
+  deadline: string;
+  assignments: Record<string, string>;
+}) {
+  return {
+    project_title: projectData.title,
+    project_description: projectData.description,
+    template_id: projectData.templateId,
+    collaborators: projectData.collaborators,
+    start_date: projectData.startDate,
+    deadline: projectData.deadline,
+    assignments: projectData.assignments,
+  };
+}
+
+export const generateTimeline = async (timelineData: {
   title: string;
   description?: string;
   templateId: number;
@@ -64,30 +125,11 @@ export const createProject = async (projectData: {
   assignments: Record<string, string>;
 }) => {
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/project/create-project`,
-      projectData
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error creating project:", error);
-    throw new Error("Failed to create project.");
-  }
-};
+    const formattedData = formatJsonRequest(timelineData);
 
-export const generateTimeline = async (timelineData: {
-  project_title: string;
-  project_description?: string;
-  template_id: number;
-  collaborators: string[];
-  start_date: string;
-  deadline: string;
-  assignments: Record<string, string>;
-}) => {
-  try {
     const response = await axios.post(
       `${API_BASE_URL}/project/generate-timeline`,
-      timelineData
+      formattedData
     );
     return response.data;
   } catch (error) {

@@ -9,7 +9,7 @@ from app.models.project import Project
 from app.models.timeline import TimelineEntry
 from app.models.user import User
 from app.models.associations import project_collaborators
-from app.models.template import Template, TemplateSubtitle
+from app.models.template import Template, TemplateSection, TemplateSubtitle
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
@@ -37,7 +37,7 @@ def generate_project_timeline(request: GenerateTimelineRequest, db: Session):
     assignments_json = json.dumps(request.assignments)
 
     prompt = (
-        f"Generate a detailed project timeline for the project titled '{request.title}'.\n"
+        f"Generate a detailed project timeline for the project titled '{request.project_title}'.\n"
         f"Description: {request.project_description}\n"
         f"Template Structure: {json.dumps(template_structure)}\n"
         f"Collaborators: {', '.join(request.collaborators)}\n"
@@ -45,7 +45,7 @@ def generate_project_timeline(request: GenerateTimelineRequest, db: Session):
         f"Deadline: {request.deadline}\n"
         f"Assignments: {assignments_json}\n\n"
         f"Constraints:\n"
-        f"- All timeline dates must be between the project start date ({request.startDate}) and the deadline ({request.deadline}).\n"
+        f"- All timeline dates must be between the project start date ({request.start_date}) and the deadline ({request.deadline}).\n"
         f"- Ensure that for any given collaborator, tasks do not overlap.\n"
         f"- Provide detailed timeline entries for every section and every subtitle listed in the template structure.\n\n"
         f"Output Requirements:\n"
@@ -86,9 +86,9 @@ def generate_project_timeline(request: GenerateTimelineRequest, db: Session):
 
 
 def create_project(request: CreateProjectRequest, db: Session):
-    """Creates a new project in the database."""
+    """Creates a new project in the database, including the AI-generated timeline."""
 
-    # Validate that the template exists
+    # Validate template exists
     template = db.query(Template).filter(Template.id == request.template_id).first()
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -109,24 +109,46 @@ def create_project(request: CreateProjectRequest, db: Session):
     collaborators = db.query(User).filter(User.email.in_(request.collaborators)).all()
     new_project.collaborators.extend(collaborators)
 
-    # Create timeline entries from template sections
-    for section in template.sections:
-        for subtitle in section.subtitles:
-            responsible_email = request.assignments.get(subtitle.subtitle)
-            responsible_user = db.query(User).filter(User.email == responsible_email).first()
+    # Create timeline entries
+    timeline_entries = []
+    for entry in request.timeline:
+        responsible_user = db.query(User).filter(User.email == entry.responsible).first()
 
-            timeline_entry = TimelineEntry(
-                project_id=new_project.id,
-                subtitle_id=subtitle.id,
-                responsible_id=responsible_user.id if responsible_user else None,
-                start=request.start_date,
-                end=request.deadline,
-            )
-            db.add(timeline_entry)
+        timeline_entry = TimelineEntry(
+            project_id=new_project.id,
+            subtitle_id=None,  # Modify if necessary
+            responsible_id=responsible_user.id if responsible_user else None,
+            start=entry.start,
+            end=entry.end,
+        )
+        db.add(timeline_entry)
+        db.commit()
+        db.refresh(timeline_entry)
+
+        timeline_entries.append(
+            {
+                "id": timeline_entry.id,
+                "section": entry.section,
+                "subtitle": entry.subtitle,
+                "responsible": entry.responsible,
+                "start": str(entry.start),
+                "end": str(entry.end),
+            }
+        )
 
     db.commit()
 
-    return new_project
+    return {
+        "id": new_project.id,
+        "title": new_project.title,
+        "description": new_project.description,
+        "template_id": new_project.template_id,
+        "start_date": str(new_project.start_date),
+        "deadline": str(new_project.deadline),
+        "assignments": request.assignments,
+        "collaborators": [user.email for user in collaborators],
+        "timeline": timeline_entries,
+    }
 
 
 def get_all_projects(db: Session):
