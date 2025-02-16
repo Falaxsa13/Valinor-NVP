@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getTemplates } from "@/api/api";
+import { getTemplates, parsePdf } from "@/api/api";
 import { ArrowLeft, ChevronRight, PlusCircle } from "lucide-react";
 
 interface Template {
@@ -103,14 +103,14 @@ export default function NewProjectPage() {
                   htmlFor="description"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Description{" "}
+                  Description
                   <span className="text-gray-500 font-normal">(optional)</span>
                 </label>
                 <textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Project description"
+                  placeholder="Add a description to help team members understand the project's purpose"
                   rows={4}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg"
                 />
@@ -171,6 +171,66 @@ export default function NewProjectPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Upload Template Section */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Upload Template
+            </h2>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                <input
+                  type="file"
+                  id="templateFile"
+                  className="hidden"
+                  accept=".pdf"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const parsedData = await parsePdf(file);
+                        console.log("Parsed PDF data:", parsedData);
+                      } catch (error) {
+                        console.error("Error parsing PDF:", error);
+                        // Handle error state here
+                      }
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="templateFile"
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-full mb-3">
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 mb-1">
+                    Click to upload a template
+                  </div>
+                  <div className="text-xs text-gray-500">Supports PDF</div>
+                </label>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-500 text-center mt-4">
+              <p>
+                Upload your own template file to use as a starting point for
+                your project.
+              </p>
+            </div>
           </div>
 
           {/* Action Buttons */}

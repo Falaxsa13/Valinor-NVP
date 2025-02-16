@@ -53,3 +53,45 @@ export const getTemplateById = async (templateId: number) => {
     throw new Error("Failed to fetch template.");
   }
 };
+
+export const createProject = async (projectData: {
+  title: string;
+  description?: string;
+  templateId: number;
+  collaborators: string[];
+  startDate: string;
+  deadline: string;
+  assignments: Record<string, string>;
+}) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/project/create-project`,
+      projectData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error creating project:", error);
+    throw new Error("Failed to create project.");
+  }
+};
+
+export const generateTimeline = async (timelineData: {
+  project_title: string;
+  project_description?: string;
+  template_id: number;
+  collaborators: string[];
+  start_date: string;
+  deadline: string;
+  assignments: Record<string, string>;
+}) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/project/generate-timeline`,
+      timelineData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error generating timeline:", error);
+    throw new Error("Failed to generate project timeline.");
+  }
+};

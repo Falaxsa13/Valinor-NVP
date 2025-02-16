@@ -25,9 +25,14 @@ interface TimelineEntry {
   end: string;
 }
 
-interface ProjectResponse {
-  project_id: string;
-  timeline?: TimelineEntry[];
+interface ProjectData {
+  title: string;
+  description?: string;
+  templateId: number;
+  collaborators: string[];
+  startDate: string;
+  deadline: string;
+  assignments: Record<string, string>;
 }
 
 function formatDate(dateStr: string) {
@@ -152,8 +157,6 @@ export default function CreateProjectPage() {
   const [error, setError] = useState<string>("");
   const hasSubmitted = useRef(false);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // ... (keeping the existing useEffect and loading/error states)
 
   useEffect(() => {
     const progressInterval = setInterval(() => {
