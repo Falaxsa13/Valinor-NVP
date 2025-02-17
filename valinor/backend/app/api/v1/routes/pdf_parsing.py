@@ -18,7 +18,6 @@ async def parse_pdf_endpoint(file: UploadFile = File(...)):
     """
     try:
         print("Starting PDF parsing")
-        print(file)
         contents = await file.read()
         parsed_data = parse_pdf(contents, file.filename)  # Calls service function
 
