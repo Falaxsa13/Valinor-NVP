@@ -3,6 +3,14 @@ from datetime import date
 from typing import Dict, List, Optional
 
 
+class TimelineEntryRequest(BaseModel):
+    section: str
+    subtitle: Optional[str] = None
+    responsible: Optional[str] = None
+    start: date
+    end: date
+
+
 # Pydantic model for generating a project timeline.
 class CreateProjectRequest(BaseModel):
     title: str
@@ -12,6 +20,7 @@ class CreateProjectRequest(BaseModel):
     start_date: date
     deadline: date
     assignments: Dict[str, str] = Field(default_factory=dict)
+    timeline: List[TimelineEntryRequest]
 
     class Config:
         from_attributes = True
@@ -38,6 +47,7 @@ class ProjectResponse(BaseModel):
     start_date: date
     deadline: date
     assignments: Dict[str, str]
+    timeline: List[TimelineEntryResponse]
 
     class Config:
         from_attributes = True
