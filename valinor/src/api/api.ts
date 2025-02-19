@@ -14,6 +14,16 @@ export const generateLatex = async (content: string) => {
   }
 };
 
+export const getProjects = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/projects`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    throw new Error("Failed to fetch projects.");
+  }
+};
+
 export const parsePdf = async (file: File) => {
   try {
     const formData = new FormData();
@@ -57,7 +67,7 @@ export const getTemplateById = async (templateId: number) => {
 interface TimelineEntry {
   section: string;
   subtitle?: string;
-  responsible?: string;
+  responsible_email: string;
   start: string;
   end: string;
 }
@@ -65,28 +75,19 @@ interface TimelineEntry {
 export const createProject = async (projectData: {
   title: string;
   description?: string;
-  templateId: number;
+  template_id: number;
   collaborators: string[];
-  startDate: string;
-  deadline: string;
+  start_date: Date;
+  deadline: Date;
   assignments: Record<string, string>;
   timeline: TimelineEntry[];
 }) => {
   try {
-    const formattedData = {
-      title: projectData.title,
-      description: projectData.description,
-      template_id: projectData.templateId,
-      collaborators: projectData.collaborators,
-      start_date: projectData.startDate,
-      deadline: projectData.deadline,
-      assignments: projectData.assignments,
-      timeline: projectData.timeline,
-    };
+    console.log("projectData for project", projectData);
 
     const response = await axios.post(
       `${API_BASE_URL}/project/create-project`,
-      formattedData
+      projectData
     );
     return response.data;
   } catch (error) {
@@ -111,7 +112,7 @@ function formatJsonRequest(projectData: {
     collaborators: projectData.collaborators,
     start_date: projectData.startDate,
     deadline: projectData.deadline,
-    assignments: projectData.assignments,
+    section_assignments: projectData.assignments,
   };
 }
 
@@ -125,7 +126,9 @@ export const generateTimeline = async (timelineData: {
   assignments: Record<string, string>;
 }) => {
   try {
+    console.log("timelineData", timelineData);
     const formattedData = formatJsonRequest(timelineData);
+    console.log("formattedData", formattedData);
 
     const response = await axios.post(
       `${API_BASE_URL}/project/generate-timeline`,

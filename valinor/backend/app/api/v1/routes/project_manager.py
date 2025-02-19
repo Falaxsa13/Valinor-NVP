@@ -5,12 +5,13 @@ from app.db.session import SessionLocal
 from app.services.project_service import (
     create_project,
     delete_project_by_id,
-    get_all_projects,
+    get_projects_overview,
     generate_project_timeline,
 )
 from app.schemas.project_schema import (
     CreateProjectRequest,
     GenerateTimelineRequest,
+    GeneratedTimelineEntryResponse,
     ProjectResponse,
     TemplateResponse,
     TimelineEntryResponse,
@@ -38,10 +39,10 @@ def create_project_endpoint(request: CreateProjectRequest, db: Session = Depends
     return create_project(request, db)
 
 
-@router.get("/get-all-projects", response_model=list[ProjectResponse])
+@router.get("/get-projects-overview", response_model=list[ProjectResponse])
 def get_projects(db: Session = Depends(get_db)):
     """Retrieve all projects."""
-    return get_all_projects(db)
+    return get_projects_overview(db)
 
 
 @router.delete("/{project_id}")
@@ -50,7 +51,7 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     return delete_project_by_id(project_id, db)
 
 
-@router.post("/generate-timeline", response_model=List[TimelineEntryResponse])
+@router.post("/generate-timeline", response_model=List[GeneratedTimelineEntryResponse])
 def generate_timeline_endpoint(request: GenerateTimelineRequest, db: Session = Depends(get_db)):
     """Generates a timeline based on project details and AI assistance."""
     return generate_project_timeline(request, db)

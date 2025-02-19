@@ -34,4 +34,3 @@ class TemplateSubtitle(Base):
     subtitle = Column(String, nullable=False)
 
     section = relationship("TemplateSection", back_populates="subtitles")
-    timeline_entries = relationship("TimelineEntry", back_populates="subtitle")
