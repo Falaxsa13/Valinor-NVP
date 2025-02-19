@@ -1,9 +1,15 @@
 import json
 import datetime
+from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException
-from app.schemas.project_schema import CreateProjectRequest, GenerateTimelineRequest, ProjectResponse
+from app.schemas.project_schema import (
+    CreateProjectRequest,
+    GenerateTimelineRequest,
+    ProjectResponse,
+    TimelineEntryResponse,
+)
 from openai import OpenAI
 from app.core.config import settings
 from app.models.project import Project
@@ -158,76 +164,83 @@ def create_project(request: CreateProjectRequest, db: Session) -> ProjectRespons
         "id": new_project.id,
         "title": new_project.title,
         "description": new_project.description,
-        "template_id": new_project.template_id,
+        "template": template.name,
         "start_date": str(new_project.start_date),
         "deadline": str(new_project.deadline),
-        "assignments": request.assignments,
         "collaborators": [user.email for user in collaborators],
         "timeline": timeline_response,
     }
 
 
-def get_projects_overview(db: Session):
-    """Fetch all projects from the database."""
+def get_projects_overview(db: Session) -> List[ProjectResponse]:
+    """Fetch all projects from the database and return them in the new response format."""
+
     projects = (
         db.query(
             Project.id,
             Project.title,
             Project.description,
-            func.count(User.id).label("collaborators"),  # Corrected collaborator count
             Project.start_date,
             Project.deadline,
             Template.name.label("template_name"),
-            Template.icon.label("template_icon"),
         )
         .join(Template, Project.template_id == Template.id)
-        .outerjoin(project_collaborators, project_collaborators.c.project_id == Project.id)  # Join association table
-        .outerjoin(User, User.id == project_collaborators.c.user_id)  # Join users table to get count
-        .group_by(Project.id, Template.id)
         .all()
     )
-
-    print(projects)
 
     project_list = []
 
     for proj in projects:
-        # Fetch timeline entries
+        # Fetch collaborators for the project
+        collaborators = (
+            db.query(User.email)
+            .join(project_collaborators, project_collaborators.c.user_id == User.id)
+            .filter(project_collaborators.c.project_id == proj.id)
+            .all()
+        )
+
+        # Fetch timeline entries for the project
         timeline_entries = (
             db.query(
+                TimelineEntry.id,
+                TimelineEntry.project_id,
                 TimelineEntry.section,
-                TimelineEntry.subtitle_id,
+                TimelineEntry.subtitle,
+                User.email.label("responsible_email"),
+                TimelineEntry.description,
                 TimelineEntry.start,
                 TimelineEntry.end,
-                User.email.label("responsible"),
             )
             .outerjoin(User, TimelineEntry.responsible_id == User.id)
             .filter(TimelineEntry.project_id == proj.id)
             .all()
         )
 
-        # Format timeline entries
         formatted_timeline = [
-            {
-                "section": entry.section,
-                "subtitle": entry.subtitle_id,
-                "responsible": entry.resposible_email,
-                "start": entry.start.strftime("%Y-%m-%d"),
-                "end": entry.end.strftime("%Y-%m-%d"),
-            }
+            TimelineEntryResponse(
+                id=entry.id,
+                project_id=entry.project_id,
+                section=entry.section,
+                subtitle=entry.subtitle,
+                responsible_email=entry.responsible_email,
+                description=entry.description,
+                start=entry.start,
+                end=entry.end,
+            )
             for entry in timeline_entries
         ]
 
         project_list.append(
-            {
-                "title": proj.title,
-                "description": proj.description,
-                "collaborators": proj.collaborators,
-                "start_date": proj.start_date.strftime("%Y-%m-%d"),
-                "deadline": proj.deadline.strftime("%Y-%m-%d"),
-                "template": {"name": proj.template_name, "icon": proj.template_icon},
-                "timeline_entries": formatted_timeline,
-            }
+            ProjectResponse(
+                id=proj.id,
+                title=proj.title,
+                description=proj.description,
+                template=proj.template_name,
+                collaborators=[c.email for c in collaborators],
+                start_date=proj.start_date,
+                deadline=proj.deadline,
+                timeline=formatted_timeline,
+            )
         )
 
     return project_list

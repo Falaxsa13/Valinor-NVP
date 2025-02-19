@@ -70,11 +70,10 @@ class ProjectResponse(BaseModel):
     id: int
     title: str
     description: Optional[str]
-    template_id: int
+    template: str
     collaborators: List[str]
     start_date: date
     deadline: date
-    assignments: Dict[str, str]
     timeline: List[TimelineEntryResponse]
 
     class Config:
