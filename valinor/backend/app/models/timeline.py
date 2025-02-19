@@ -5,6 +5,22 @@ from app.db.base import Base
 
 # --- Timeline Entry Model ---
 class TimelineEntry(Base):
+    """
+    Represents an entry in the project timeline.
+
+    Attributes:
+        id (int): The unique identifier for the timeline entry.
+        project_id (int): The ID of the project this entry is associated with.
+        responsible_id (int, optional): The ID of the user responsible for this entry.
+        description (str, optional): A description of the timeline entry.
+        section (str): The section of the project this entry belongs to.
+        subtitle (str, optional): A subtitle for the timeline entry.
+        start (date): The start date of the timeline entry.
+        end (date): The end date of the timeline entry.
+        project (Project): The project this entry is associated with.
+        responsible_user (User): The user responsible for this entry.
+    """
+
     __tablename__ = "timeline_entries"
 
     id = Column(Integer, primary_key=True, index=True)

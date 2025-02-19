@@ -26,6 +26,28 @@ export const getProjects = async () => {
   }
 };
 
+export const getProject = async (projectId: number) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/project/${projectId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching project details:", error);
+    throw new Error("Failed to fetch project details.");
+  }
+};
+
+export const getProjectMetrics = async (projectId: number) => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/project/${projectId}/metrics`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching project metrics:", error);
+    throw new Error("Failed to fetch project metrics.");
+  }
+};
+
 export const parsePdf = async (file: File) => {
   try {
     const formData = new FormData();

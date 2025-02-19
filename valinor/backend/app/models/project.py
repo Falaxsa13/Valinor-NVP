@@ -6,6 +6,23 @@ from app.models.associations import project_collaborators
 
 # --- Projects Table ---
 class Project(Base):
+    """
+    Represents a project entity in the database.
+
+    Attributes:
+        id (int): The unique identifier of the project.
+        title (str): The title of the project.
+        description (str, optional): A brief description of the project.
+        start_date (date): The start date of the project.
+        deadline (date): The deadline for the project.
+
+    Relationships:
+        template_id (int): The foreign key referencing the template associated with the project.
+        template (Template): The template associated with the project.
+        timeline_entries (list[TimelineEntry]): The timeline entries associated with the project.
+        collaborators (list[User]): The users collaborating on the project.
+    """
+
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)

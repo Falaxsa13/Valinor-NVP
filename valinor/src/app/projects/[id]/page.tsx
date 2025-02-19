@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import axios from "axios";
 import Link from "next/link";
 import RoadmapComponent from "@/components/RoadmapComponent";
 import KanbanBoardComponent from "@/components/KanbanBoardComponent";
@@ -10,24 +9,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   Brain,
-  Clock,
+  Clock4,
   AlertCircle,
   CheckCircle2,
-  Clock4,
   ArrowLeft,
   BarChart,
   Calendar,
   Users,
 } from "lucide-react";
 
+// Import the API methods instead of axios
+import { getProject, getProjectMetrics } from "@/api/api";
+
 interface Project {
   id: string;
   title: string;
-  status: string;
-  timeline_entries: any[];
+  // if no status is provided by the API, we'll default to "In Progress"
+  status?: string;
+  timeline: any[];
+  // Other properties if needed...
 }
-
-// ... (keeping existing interfaces)
 
 interface ProjectMetrics {
   team: {
@@ -90,14 +91,14 @@ const ProjectDetailsPage: React.FC = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch project details and metrics in parallel
-        const [projectResponse, metricsResponse] = await Promise.all([
-          axios.get(`http://localhost:8000/projects/${id}`),
-          axios.get(`http://localhost:8000/projects/${id}/metrics`),
+        // Call the new API methods in parallel
+        const [projectData, metricsData] = await Promise.all([
+          getProject(Number(id)),
+          getProjectMetrics(Number(id)),
         ]);
 
-        setProject(projectResponse.data);
-        setMetrics(metricsResponse.data);
+        setProject(projectData);
+        setMetrics(metricsData);
       } catch (error) {
         console.error("Error fetching project data:", error);
       } finally {
@@ -105,10 +106,10 @@ const ProjectDetailsPage: React.FC = () => {
       }
     };
 
-    fetchData();
+    if (id) {
+      fetchData();
+    }
   }, [id]);
-
-  // ... (keeping loading and error states)
 
   const MetricCard = ({ icon: Icon, title, value, progress }: any) => (
     <div className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow duration-200">
@@ -122,6 +123,9 @@ const ProjectDetailsPage: React.FC = () => {
       {progress && <Progress value={progress} className="h-1.5 mt-3" />}
     </div>
   );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (!project) return <div>Project not found.</div>;
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
@@ -139,9 +143,9 @@ const ProjectDetailsPage: React.FC = () => {
             <div className="hidden sm:block h-6 w-px bg-gray-300" />
             <div className="flex items-center space-x-2">
               <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
-                {project?.title}
+                {project.title}
               </h1>
-              <StatusBadge status={project?.status || "In Progress"} />
+              <StatusBadge status={project.status || "In Progress"} />
             </div>
           </div>
         </div>
@@ -156,25 +160,21 @@ const ProjectDetailsPage: React.FC = () => {
               icon={BarChart}
               title="Completion"
               value={`${metrics?.phases.completion_percentage || 0}%`}
-              progress={metrics?.phases.completion_percentage}
             />
             <MetricCard
               icon={Calendar}
               title="Phases"
               value={`${metrics?.phases.total_phases || 0} Total`}
-              subtitle={`${metrics?.phases.in_progress_phases || 0} Active`}
             />
             <MetricCard
               icon={Users}
               title="Team Members"
               value={`${metrics?.team.active_members || 0} Active`}
-              subtitle={`${metrics?.team.total_members || 0} Total`}
             />
             <MetricCard
               icon={Brain}
               title="Phase Distribution"
               value={`${metrics?.phases.completed_phases || 0} Complete`}
-              subtitle={`${metrics?.phases.upcoming_phases || 0} Upcoming`}
             />
           </div>
 
@@ -183,23 +183,21 @@ const ProjectDetailsPage: React.FC = () => {
             <div className="border-b flex">
               <button
                 onClick={() => setActiveTab("roadmap")}
-                className={`px-6 py-3 text-sm font-medium transition-colors relative
-                    ${
-                      activeTab === "roadmap"
-                        ? "text-blue-600 border-b-2 border-blue-600"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
+                className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+                  activeTab === "roadmap"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
               >
                 Roadmap
               </button>
               <button
                 onClick={() => setActiveTab("kanban")}
-                className={`px-6 py-3 text-sm font-medium transition-colors relative
-                    ${
-                      activeTab === "kanban"
-                        ? "text-blue-600 border-b-2 border-blue-600"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
+                className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+                  activeTab === "kanban"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
               >
                 Kanban Board
               </button>
@@ -207,7 +205,7 @@ const ProjectDetailsPage: React.FC = () => {
 
             <div className="p-6">
               {activeTab === "roadmap" && (
-                <RoadmapComponent timeline={project?.timeline_entries || []} />
+                <RoadmapComponent timeline={project.timeline || []} />
               )}
               {activeTab === "kanban" && <KanbanBoardComponent />}
             </div>

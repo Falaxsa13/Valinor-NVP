@@ -1,6 +1,6 @@
 import json
-import datetime
-from typing import List
+from datetime import date
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException
@@ -8,6 +8,9 @@ from app.schemas.project_schema import (
     CreateProjectRequest,
     GenerateTimelineRequest,
     ProjectResponse,
+    TemplateResponse,
+    TemplateSectionResponse,
+    TemplateSubtitleResponse,
     TimelineEntryResponse,
 )
 from openai import OpenAI
@@ -17,79 +20,6 @@ from app.models.timeline import TimelineEntry
 from app.models.user import User
 from app.models.associations import project_collaborators
 from app.models.template import Template, TemplateSection, TemplateSubtitle
-
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
-
-def generate_project_timeline(request: GenerateTimelineRequest, db: Session):
-    """Generates a detailed timeline using OpenAI based on project details."""
-
-    template = db.query(Template).filter(Template.id == request.template_id).first()
-
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
-
-    # Convert sections & subtitles into JSON format
-    template_structure = {
-        "sections": [
-            {
-                "title": section.title,
-                "subtitles": [subtitle.subtitle for subtitle in section.subtitles],
-            }
-            for section in template.sections
-        ]
-    }
-
-    # Convert assignments
-    assignments_json = json.dumps(request.section_assignments)
-
-    prompt = (
-        f"Generate a detailed project timeline for the project titled '{request.project_title}'.\n"
-        f"Description: {request.project_description}\n"
-        f"Template Structure: {json.dumps(template_structure)}\n"
-        f"Collaborators: {', '.join(request.collaborators)}\n"
-        f"Start Date: {request.start_date}\n"
-        f"Deadline: {request.deadline}\n"
-        f"Assignments: {assignments_json}\n\n"
-        f"Constraints:\n"
-        f"- All timeline dates must be between the project start date ({request.start_date}) and the deadline ({request.deadline}).\n"
-        f"- Ensure that for any given collaborator, tasks do not overlap.\n"
-        f"- Provide detailed timeline entries for every section and every subtitle listed in the template structure.\n\n"
-        f"Output Requirements:\n"
-        f"Return a valid JSON array where each element is an object with the following keys:\n"
-        f"  - 'section': The section title.\n"
-        f"  - 'subtitle': The subtitle title (or null if none).\n"
-        f"  - 'responsible_email': The assigned collaborator's email for that section/subtitle, if any (or null).\n"
-        f"  - 'start': The start date in YYYY-MM-DD format.\n"
-        f"  - 'end': The end date in YYYY-MM-DD format.\n\n"
-        f"Ensure that the timeline is as detailed as possible, providing entries for every section and subtitle, and that all dates are realistic and sequential so that the entire project is completed by the deadline.\n"
-        f"Output only the JSON array with no additional text."
-    )
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are an expert project manager who creates detailed project timelines."},
-            {"role": "user", "content": prompt},
-        ],
-    )
-
-    result_text = response.choices[0].message.content.strip()
-
-    if result_text.startswith("```json"):
-        result_text = result_text[len("```json") :].strip()
-    if result_text.endswith("```"):
-        result_text = result_text[:-3].strip()
-
-    try:
-        timeline_data = json.loads(result_text)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to parse timeline: {e}. Raw response: {result_text}")
-
-    if not isinstance(timeline_data, list):
-        raise HTTPException(status_code=400, detail="Unexpected timeline format.")
-
-    return timeline_data
 
 
 def create_project(request: CreateProjectRequest, db: Session) -> ProjectResponse:
@@ -173,7 +103,33 @@ def create_project(request: CreateProjectRequest, db: Session) -> ProjectRespons
 
 
 def get_projects_overview(db: Session) -> List[ProjectResponse]:
-    """Fetch all projects from the database and return them in the new response format."""
+    """
+    Fetch all projects from the database and return them in the new response format.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        List[ProjectResponse]: A list of ProjectResponse objects, each containing:
+            - id (int): The project ID.
+            - title (str): The project title.
+            - description (str): The project description.
+            - template (str): The name of the template associated with the project.
+            - collaborators (List[str]): A list of email addresses of the project's collaborators.
+            - start_date (datetime): The start date of the project.
+            - deadline (datetime): The deadline of the project.
+            - timeline (List[TimelineEntryResponse]): A list of timeline entries associated with the project, each containing:
+                - id (int): The timeline entry ID.
+                - project_id (int): The ID of the project the timeline entry belongs to.
+                - section (str): The section of the timeline entry.
+                - subtitle (str): The subtitle of the timeline entry.
+                - responsible_email (str): The email of the user responsible for the timeline entry.
+                - description (str): The description of the timeline entry.
+                - start (datetime): The start date of the timeline entry.
+                - end (datetime): The end date of the timeline entry.
+
+    Fetch all projects from the database and return them in the new response format.
+    """
 
     projects = (
         db.query(
@@ -261,11 +217,132 @@ def delete_project_by_id(project_id: int, db: Session):
     return {"message": "Project and its timeline deleted successfully"}
 
 
-def get_all_templates(db: Session):
-    """Retrieves all templates from the database."""
-    return db.query(Template).all()
+def get_project_full(project_id: int, db: Session) -> ProjectResponse:
+
+    # Retrieve the project with its template name
+    project_data = (
+        db.query(
+            Project.id,
+            Project.title,
+            Project.description,
+            Project.start_date,
+            Project.deadline,
+            Template.name.label("template_name"),
+        )
+        .join(Template, Project.template_id == Template.id)
+        .filter(Project.id == project_id)
+        .first()
+    )
+
+    print("project_data", project_data)
+
+    if not project_data:
+        return None
+
+    # Retrieve collaborators' emails
+    collaborators = (
+        db.query(User.email)
+        .join(project_collaborators, project_collaborators.c.user_id == User.id)
+        .filter(project_collaborators.c.project_id == project_id)
+        .all()
+    )
+
+    timeline_entries_data = (
+        db.query(
+            TimelineEntry.id,
+            TimelineEntry.project_id,
+            TimelineEntry.section,
+            TimelineEntry.subtitle,
+            TimelineEntry.description,
+            TimelineEntry.start,
+            TimelineEntry.end,
+            User.email.label("responsible_email"),
+        )
+        .outerjoin(User, TimelineEntry.responsible_id == User.id)
+        .filter(TimelineEntry.project_id == project_id)
+        .all()
+    )
+
+    # Format timeline entries to match TimelineEntryResponse
+    formatted_timeline = [
+        TimelineEntryResponse(
+            id=entry.id,
+            project_id=entry.project_id,
+            section=entry.section,
+            subtitle=entry.subtitle,
+            responsible_email=entry.responsible_email,
+            description=entry.description,
+            start=entry.start,
+            end=entry.end,
+        )
+        for entry in timeline_entries_data
+    ]
+
+    # Assemble the final ProjectResponse using the gathered data
+    project_response = ProjectResponse(
+        id=project_data.id,
+        title=project_data.title,
+        description=project_data.description,
+        template=project_data.template_name,
+        collaborators=[c.email for c in collaborators],
+        start_date=project_data.start_date,
+        deadline=project_data.deadline,
+        timeline=formatted_timeline,
+    )
+
+    return project_response
 
 
-def get_template_by_id(template_id: int, db: Session):
-    """Retrieves a template by its ID."""
-    return db.query(Template).filter(Template.id == template_id).first()
+def get_project_metrics(project_id: int, db: Session):
+    # Fetch the project
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        return None
+
+    # Fetch timeline entries for the project
+    timeline_entries = db.query(TimelineEntry).filter(TimelineEntry.project_id == project_id).all()
+
+    # Calculate phase metrics
+    today = date.today()
+    total_phases = len(timeline_entries)
+    completed_phases = 0
+    in_progress_phases = 0
+    upcoming_phases = 0
+
+    for entry in timeline_entries:
+        if entry.end < today:
+            completed_phases += 1
+        elif entry.start > today:
+            upcoming_phases += 1
+        else:
+            in_progress_phases += 1
+
+    completion_percentage = int((completed_phases / total_phases) * 100) if total_phases > 0 else 0
+
+    # Team metrics: count the collaborators (assuming all are active)
+    team_members = project.collaborators
+    total_members = len(team_members)
+    active_members = total_members  # For demonstration purposes
+
+    metrics = {
+        "team": {
+            "total_members": total_members,
+            "active_members": active_members,
+            "team_members": [{"id": user.id, "email": user.email, "name": user.name} for user in team_members],
+            "roles_distribution": {},  # No role info provided, so return an empty dict
+        },
+        "phases": {
+            "total_phases": total_phases,
+            "completed_phases": completed_phases,
+            "in_progress_phases": in_progress_phases,
+            "upcoming_phases": upcoming_phases,
+            "completion_percentage": completion_percentage,
+            "phase_distribution": {
+                "completed": completed_phases,
+                "in_progress": in_progress_phases,
+                "upcoming": upcoming_phases,
+            },
+        },
+        "last_updated": today.isoformat(),
+    }
+    return metrics
