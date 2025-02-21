@@ -8,7 +8,6 @@ import { Color } from "@tiptap/extension-color";
 import { Extension } from "@tiptap/core";
 import TextStyle from "@tiptap/extension-text-style";
 import { MenuBar, DocumentStats } from "./DocumentFeatures";
-import LaTeXPreview from "./LaTeXPreview";
 
 import {
   Bold,
@@ -352,11 +351,6 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
           className="pr-12" // Add padding for collapsed state
         />
         <DocumentStats editor={editor} />
-        <LaTeXPreview
-          content={editor?.getHTML() || ""}
-          isOpen={isPreviewOpen}
-          onToggle={setIsPreviewOpen}
-        />{" "}
       </div>
     </div>
   );
