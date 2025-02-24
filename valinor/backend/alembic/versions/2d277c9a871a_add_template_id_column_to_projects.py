@@ -24,9 +24,7 @@ def upgrade():
     op.add_column("projects", sa.Column("template_id", sa.String(), nullable=True))
 
     # Step 2: Set a default value for existing rows (update manually)
-    op.execute(
-        "UPDATE projects SET template_id = 'default_template' WHERE template_id IS NULL"
-    )
+    op.execute("UPDATE projects SET template_id = 'default_template' WHERE template_id IS NULL")
 
     # Step 3: Alter the column to be NOT NULL
     op.alter_column("projects", "template_id", nullable=False)

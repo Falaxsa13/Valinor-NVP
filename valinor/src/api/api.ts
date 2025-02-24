@@ -14,6 +14,40 @@ export const generateLatex = async (content: string) => {
   }
 };
 
+export const getProjects = async () => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/project/get-projects-overview`
+    );
+    return response;
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    throw new Error("Failed to fetch projects.");
+  }
+};
+
+export const getProject = async (projectId: number) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/project/${projectId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching project details:", error);
+    throw new Error("Failed to fetch project details.");
+  }
+};
+
+export const getProjectMetrics = async (projectId: number) => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/project/${projectId}/metrics`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching project metrics:", error);
+    throw new Error("Failed to fetch project metrics.");
+  }
+};
+
 export const parsePdf = async (file: File) => {
   try {
     const formData = new FormData();
@@ -47,7 +81,6 @@ export const getTemplates = async () => {
 export const getTemplateById = async (templateId: number) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/templates/${templateId}`);
-    console.log("Fetched template:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching template:", error);
@@ -55,10 +88,10 @@ export const getTemplateById = async (templateId: number) => {
   }
 };
 
-interface TimelineEntry {
+export interface TimelineEntry {
   section: string;
   subtitle?: string;
-  responsible?: string;
+  responsible_email: string;
   start: string;
   end: string;
 }
@@ -66,28 +99,18 @@ interface TimelineEntry {
 export const createProject = async (projectData: {
   title: string;
   description?: string;
-  templateId: number;
+  template_id: number;
   collaborators: string[];
-  startDate: string;
-  deadline: string;
+  start_date: Date;
+  deadline: Date;
   assignments: Record<string, string>;
   timeline: TimelineEntry[];
 }) => {
   try {
-    const formattedData = {
-      title: projectData.title,
-      description: projectData.description,
-      template_id: projectData.templateId,
-      collaborators: projectData.collaborators,
-      start_date: projectData.startDate,
-      deadline: projectData.deadline,
-      assignments: projectData.assignments,
-      timeline: projectData.timeline,
-    };
 
     const response = await axios.post(
       `${API_BASE_URL}/project/create-project`,
-      formattedData
+      projectData
     );
     return response.data;
   } catch (error) {
@@ -112,7 +135,7 @@ function formatJsonRequest(projectData: {
     collaborators: projectData.collaborators,
     start_date: projectData.startDate,
     deadline: projectData.deadline,
-    assignments: projectData.assignments,
+    section_assignments: projectData.assignments,
   };
 }
 

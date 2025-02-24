@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -8,7 +8,9 @@ import { Color } from "@tiptap/extension-color";
 import { Extension } from "@tiptap/core";
 import TextStyle from "@tiptap/extension-text-style";
 import { MenuBar, DocumentStats } from "./DocumentFeatures";
-import LaTeXPreview from "./LaTeXPreview";
+import '../styles/editor.css';
+import { Heading } from '@tiptap/extension-heading';
+import { mergeAttributes } from '@tiptap/core';
 
 import {
   Bold,
@@ -29,6 +31,7 @@ import {
 
 interface EditorProps {
   onContentChange: (content: string) => void;
+  initialContent?: string;
 }
 
 const FONT_SIZES = [
@@ -95,6 +98,39 @@ const CustomTextStyle = TextStyle.extend({
   },
 });
 
+const CustomHeading = Heading.configure({
+  levels: [2, 3],
+}).extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      id: {
+        default: null,
+        parseHTML: element => element.getAttribute('id'),
+        renderHTML: attributes => {
+          if (!attributes.id) {
+            return {}
+          }
+          return {
+            id: attributes.id,
+            class: 'section-title subtitle-text'
+          }
+        }
+      }
+    }
+  },
+  addKeyboardShortcuts() {
+    return {
+      'Enter': () => {
+        if (this.editor.isActive('heading')) {
+          return this.editor.commands.setNode('paragraph')
+        }
+        return false
+      }
+    }
+  }
+});
+
 const MenuButton = ({
   isActive = false,
   onClick,
@@ -157,37 +193,56 @@ const Dropdown = ({
   );
 };
 
-const EnhancedEditor = ({ onContentChange }: EditorProps) => {
+const EnhancedEditor = ({ onContentChange, initialContent = "" }: EditorProps) => {
   const [fontSize, setFontSize] = useState("11");
   const [fontFamily, setFontFamily] = useState("Arial");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        paragraph: { HTMLAttributes: { class: "mb-3" } },
+        heading: false,
+        paragraph: { 
+          HTMLAttributes: { 
+            class: 'mb-3' 
+          } 
+        },
       }),
+      CustomHeading,
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      CustomTextStyle, // Our custom extension handling both fontSize and fontFamily
+      CustomTextStyle,
       Color,
       Placeholder.configure({
         placeholder: "Type @ to insert, or start writing...",
       }),
     ],
-    content: "",
+    content: initialContent,
     onUpdate: ({ editor }) => {
       if (editor) {
+        const { from, to } = editor.state.selection
         onContentChange(editor.getHTML());
+        editor.commands.setTextSelection({ from, to })
       }
     },
     editorProps: {
       attributes: {
-        class:
-          "prose max-w-none focus:outline-none min-h-[calc(100vh-8rem)] px-16 py-12",
+        class: "prose max-w-none focus:outline-none min-h-[calc(100vh-8rem)] px-16 py-12 editor-content",
       },
+      handleKeyDown: (view, event) => {
+        if (event.key === 'Enter' && view.state.selection.$head.parent.type.name === 'heading') {
+          return true
+        }
+        return false
+      }
     },
   });
+
+  useEffect(() => {
+    if (editor && initialContent) {
+      editor.commands.setContent(initialContent);
+    }
+  }, [editor, initialContent]);
 
   if (!editor) {
     return (
@@ -200,7 +255,6 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
 
   const updateFontSize = (size: string) => {
     setFontSize(size);
-    // Merge with current attributes so we don't lose fontFamily (if any)
     const current = editor.getAttributes("textStyle");
     editor
       .chain()
@@ -220,35 +274,15 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
   };
 
   return (
-    <div className="flex h-screen w-full max-w-5xl mx-auto ">
+    <div className="flex-1 bg-white rounded-lg shadow-sm">
       <div
-        className={`flex-1 transition-all duration-300 ease-in-out ${
-          isPreviewOpen ? "mr-[50%]" : "mr-12"
+        className={`transition-all duration-300 ease-in-out ${
+          isPreviewOpen ? "mr-[50%]" : "mr-6"
         }`}
       >
         <MenuBar editor={editor} />
-        {/* Main Toolbar */}
-        <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
-          <div className="flex items-center justify-between p-2 border-b">
-            <div className="flex items-center space-x-4">
-              <div className="w-6 h-6 bg-blue-600 rounded" />
-              <div className="flex flex-col">
-                <input
-                  type="text"
-                  placeholder="Untitled document"
-                  className="text-lg font-medium bg-transparent border-none outline-none hover:bg-gray-100 px-2 rounded"
-                />
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button className="px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded">
-                Share
-              </button>
-            </div>
-          </div>
-
-          {/* Formatting Toolbar */}
-          <div className="flex flex-wrap items-center p-1 gap-1 border-b">
+        <div className="sticky top-6 z-10 bg-white shadow-sm rounded-t-lg border-b-0">
+          <div className="flex flex-wrap items-center p-2 gap-1.5">
             <div className="flex items-center border-r pr-2 mr-2">
               <Dropdown
                 value={fontFamily}
@@ -346,17 +380,13 @@ const EnhancedEditor = ({ onContentChange }: EditorProps) => {
             </MenuButton>
           </div>
         </div>
-        {/* Editor Content */}
-        <EditorContent
-          editor={editor}
-          className="pr-12" // Add padding for collapsed state
-        />
-        <DocumentStats editor={editor} />
-        <LaTeXPreview
-          content={editor?.getHTML() || ""}
-          isOpen={isPreviewOpen}
-          onToggle={setIsPreviewOpen}
-        />{" "}
+        <div className="-mt-2">
+          <EditorContent
+            editor={editor}
+            className="px-8 pt-2 pb-6"
+          />
+          <DocumentStats editor={editor} />
+        </div>
       </div>
     </div>
   );

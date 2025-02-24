@@ -1,0 +1,32 @@
+.editor-content h2 {
+  font-size: 1.5em;
+  margin-top: 2em;
+  margin-bottom: 1.5em;
+  color: #2563eb;
+  padding-bottom: 0.5em;
+  border-bottom: 2px solid #e5e7eb;
+  scroll-margin-top: 100px;
+}
+
+/* Remove top margin from first section */
+.editor-content h2:first-child {
+  margin-top: 0;
+}
+
+.editor-content h3 {
+  font-size: 1.2em;
+  margin-top: 1.5em;
+  margin-bottom: 1em;
+  color: #374151;
+  padding-left: 0.5em;
+  border-left: 3px solid #2563eb;
+  scroll-margin-top: 100px;
+}
+
+.editor-content p {
+  margin-bottom: 2em;
+  min-height: 2.5em;
+  padding: 1em;
+  background-color: #f9fafb;
+  border-radius: 0.5em;
+} 
