@@ -23,6 +23,7 @@ client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def generate_project_timeline(request: GenerateTimelineRequest, db: Session):
     """Generates a detailed timeline using OpenAI based on project details."""
+    print(f"Generating timeline for project: {request.project_title}")
 
     template = db.query(Template).filter(Template.id == request.template_id).first()
 
@@ -75,6 +76,7 @@ def generate_project_timeline(request: GenerateTimelineRequest, db: Session):
     )
 
     result_text = response.choices[0].message.content.strip()
+    print(f"Timeline generation response: {result_text}")
 
     if result_text.startswith("```json"):
         result_text = result_text[len("```json") :].strip()

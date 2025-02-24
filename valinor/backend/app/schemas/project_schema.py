@@ -71,6 +71,7 @@ class ProjectResponse(BaseModel):
     title: str
     description: Optional[str]
     template: str
+    template_id: int
     collaborators: List[str]
     start_date: date
     deadline: date

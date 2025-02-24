@@ -362,6 +362,10 @@ const ProjectDetailsPage: React.FC = () => {
     return Math.min(100, Math.round((daysElapsed! / projectDuration) * 100));
   }, [projectDuration, daysElapsed]);
 
+  const handleEditProject = () => {
+    router.push(`/editor/${id}`);
+  };
+
   if (isLoading) {
     return <ProjectDetailsSkeleton />;
   }
@@ -489,7 +493,10 @@ const ProjectDetailsPage: React.FC = () => {
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuLabel>Project Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="flex items-center">
+                <DropdownMenuItem 
+                  className="flex items-center"
+                  onClick={handleEditProject}
+                >
                   <FileEdit className="h-4 w-4 mr-2" />
                   Edit Project
                 </DropdownMenuItem>
@@ -1296,6 +1303,7 @@ const ProjectDetailsPage: React.FC = () => {
                       variant="outline"
                       className="justify-start text-sm h-auto py-2.5"
                       size="sm"
+                      onClick={handleEditProject}
                     >
                       <FileEdit className="h-4 w-4 mr-2 text-gray-500" />
                       Edit Project

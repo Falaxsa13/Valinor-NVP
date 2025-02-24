@@ -80,7 +80,6 @@ export const getTemplates = async () => {
 export const getTemplateById = async (templateId: number) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/templates/${templateId}`);
-    console.log("Fetched template:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching template:", error);
@@ -107,7 +106,6 @@ export const createProject = async (projectData: {
   timeline: TimelineEntry[];
 }) => {
   try {
-    console.log("projectData for project", projectData);
 
     const response = await axios.post(
       `${API_BASE_URL}/project/create-project`,
@@ -150,9 +148,7 @@ export const generateTimeline = async (timelineData: {
   assignments: Record<string, string>;
 }) => {
   try {
-    console.log("timelineData", timelineData);
     const formattedData = formatJsonRequest(timelineData);
-    console.log("formattedData", formattedData);
 
     const response = await axios.post(
       `${API_BASE_URL}/project/generate-timeline`,

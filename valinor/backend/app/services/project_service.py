@@ -24,6 +24,7 @@ from app.models.template import Template, TemplateSection, TemplateSubtitle
 
 def create_project(request: CreateProjectRequest, db: Session) -> ProjectResponse:
     """Creates a new project in the database, including the AI-generated timeline."""
+    print(f"Creating project: {request.title}")
 
     # Validate template exists
     template = db.query(Template).filter(Template.id == request.template_id).first()
@@ -31,18 +32,20 @@ def create_project(request: CreateProjectRequest, db: Session) -> ProjectRespons
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
 
+    print(f"Inserting project: {request.title}")
     # Create project entry
     new_project = Project(
         title=request.title,
         description=request.description,
         start_date=request.start_date,
-        deadline=request.deadline,
         template_id=request.template_id,
+        deadline=request.deadline,
     )
 
     db.add(new_project)
     db.commit()
     db.refresh(new_project)
+    print(f"Project inserted: {new_project.id}")
 
     collaborators = db.query(User).filter(User.email.in_(request.collaborators)).all()
 
@@ -89,12 +92,14 @@ def create_project(request: CreateProjectRequest, db: Session) -> ProjectRespons
         }
         for index, entry in enumerate(timeline_entries)
     ]
+    print(f"Ready to return project: {new_project.title}")
 
     return {
         "id": new_project.id,
         "title": new_project.title,
         "description": new_project.description,
         "template": template.name,
+        "template_id": new_project.template_id,
         "start_date": str(new_project.start_date),
         "deadline": str(new_project.deadline),
         "collaborators": [user.email for user in collaborators],
@@ -136,6 +141,7 @@ def get_projects_overview(db: Session) -> List[ProjectResponse]:
             Project.id,
             Project.title,
             Project.description,
+            Project.template_id,
             Project.start_date,
             Project.deadline,
             Template.name.label("template_name"),
@@ -192,6 +198,7 @@ def get_projects_overview(db: Session) -> List[ProjectResponse]:
                 title=proj.title,
                 description=proj.description,
                 template=proj.template_name,
+                template_id=proj.template_id,
                 collaborators=[c.email for c in collaborators],
                 start_date=proj.start_date,
                 deadline=proj.deadline,
@@ -227,14 +234,13 @@ def get_project_full(project_id: int, db: Session) -> ProjectResponse:
             Project.description,
             Project.start_date,
             Project.deadline,
+            Project.template_id,
             Template.name.label("template_name"),
         )
         .join(Template, Project.template_id == Template.id)
         .filter(Project.id == project_id)
         .first()
     )
-
-    print("project_data", project_data)
 
     if not project_data:
         return None
@@ -284,12 +290,12 @@ def get_project_full(project_id: int, db: Session) -> ProjectResponse:
         title=project_data.title,
         description=project_data.description,
         template=project_data.template_name,
+        template_id=project_data.template_id,
         collaborators=[c.email for c in collaborators],
         start_date=project_data.start_date,
         deadline=project_data.deadline,
         timeline=formatted_timeline,
     )
-
     return project_response
 
 
