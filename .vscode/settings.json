@@ -6,5 +6,6 @@
     "**/.trunk/*out/": true,
     "**/.trunk/*plugins/": true,
     "**/__pycache__": true
-  }
+  },
+  "C_Cpp_Runner.msvcBatchPath": ""
 }
